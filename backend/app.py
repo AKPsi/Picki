@@ -2,11 +2,13 @@ import requests
 import os
 import uuid
 import json
-from urllib.parse import quote
 from dotenv import load_dotenv
 from flask import Flask, request
 import firebase_admin
 from firebase_admin import firestore
+
+
+RADIUS = 15000  # 15,000 m radius
 
 
 app = Flask(__name__)
@@ -36,7 +38,8 @@ def createSession():
     session_ref = db.collection(u'sessions').document(session_id)
     session_ref.set({
         u'device_ids': [device_id],
-        u'user_address': '',
+        u'latitude': 0,
+        u'longitude': 0,
         u'restaurants': [],
         u'names': [name]
     })
@@ -50,35 +53,44 @@ def address(session_id: str):
         return {
             'message': "Error! Invalid session ID."
         }, 400
-    if 'address' not in request.form:
+
+    if 'address' in request.form:
+        url = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json'
+        params = {
+            'input': request.form['address'],
+            'inputtype': 'textquery',
+            'fields': 'geometry',
+            'key': os.environ.get('GCLOUD_MAPS_API_KEY')
+            }
+
+        response = requests.get(url, params=params).json()
+        if response['status'] != 'OK':
+            return {
+                'message': "Error! Invalid address."
+            }, 400
+
+        print(response)
+        location = response['candidates'][0]['geometry']['location']
+        lat, lng = location['lat'], location['lng']
+    elif 'latitude' and 'longitude' in request.form:
+        lat, lng = request.form['latitude'], request.form['longitude']
+    else:
         return {
-            'message': "Error! 'address' not found in request."
+            'message': "Error! neither address, latitutde, nor longitude found in request."
         }, 400
-
-    url = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json'
-    params = {
-        'input': request.form['address'],
-        'inputtype': 'textquery',
-        'fields': 'formatted_address',
-        'key': os.environ.get('GCLOUD_MAPS_API_KEY')
-        }
-
-    response = requests.get(url, params=params).json()
-    if response['status'] != 'OK':
-        return {
-            'message': "Error! Invalid address."
-        }, 400
-
-    fmt_address = response['candidates'][0]['formatted_address']
 
     session_ref = db.collection(u'sessions').document(session_id)
-    session_ref.update({u'user_address': fmt_address})
+    session_ref.update({u'latitude': lat, u'longitude': lng})
 
-    return {'address': fmt_address}, 200
+    return {'latitude': lat, 'longitude': lng}, 200
 
 
 @app.route('/session/<session_id>', methods=['POST'])
 def joinLobby(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
     if 'name' not in request.form:
         return {
             'message': "Error! 'name' not found in request."
@@ -87,17 +99,8 @@ def joinLobby(session_id: str):
         return {
             'message': "Error! 'device_id' not found in request."
         }, 400
-    if not db.collection(u'sessions').document(session_id).get().exists:
-        return {
-            'message': "Error! Invalid session ID."
-        }, 400
 
     session_ref = db.collection(u'sessions').document(session_id)
-    session_ref.update({
-        u'names': firestore.ArrayUnion([request.form['name']]),
-        u'device_ids': firestore.ArrayUnion([request.form['device_id']])
-        })
-
     fcm_headers = {
         'Content-Type': 'application/json',
         'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
@@ -123,8 +126,59 @@ def joinLobby(session_id: str):
             data=json.dumps(fcm_body)
         )
 
-    return {'session_id': session_id}, 200
+    session_ref.update({
+        u'names': firestore.ArrayUnion([request.form['name']]),
+        u'device_ids': firestore.ArrayUnion([request.form['device_id']])
+        })    
+
+    return {'session_id': session_id, 'names': doc_dict['names']}, 200
+
+
+@app.route('/session/<session_id>/start', methods=['POST'])
+def start(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    doc_dict = session_ref.get().to_dict()
+
+    lat, lng = doc_dict['latitude'], doc_dict['longitude']
+
+    nearby_url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+    params = {
+        'location': f'{lat},{lng}',
+        'radius': RADIUS,
+        'type': 'restaurant',
+        'key': os.environ.get('GCLOUD_MAPS_API_KEY')
+        }
+
+    resp = requests.get(url=nearby_url, params=params)
+    return resp.json(), 200
+
+    # fcm_headers = {
+    #     'Content-Type': 'application/json',
+    #     'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
+    # }
+
+    # for device_id in doc_dict['device_ids']:
+    #     fcm_body = {
+    #         'to': device_id,
+    #         'notification': {
+    #             'title': 'start',
+    #             'body': {
+    #                 'restaurants': []
+    #             }
+    #         }
+    #     }
+
+    #     requests.post(
+    #         url="https://fcm.googleapis.com/fcm/send",
+    #         headers=fcm_headers,
+    #         data=json.dumps(fcm_body)
+    #     )
 
 
 if __name__ == "__main__":
-    app.run(port=4561, host='127.0.0.1', debug=True)
+    app.run(port=4576, host='127.0.0.1', debug=True)
