@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:bloc/bloc.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
@@ -13,14 +12,15 @@ import 'package:geolocator/geolocator.dart';
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
-  final String url = "";
+  final String url = "http://172.20.10.10:5000/";
 
   Future<Map> get(String request, [Map queryParams = const {}]) async {
     return json.decode((await http.get(Uri.parse(request))).body);
   }
 
   Future<Map> post(String path, Map body) async {
-    return {};
+    final response = (await http.post(Uri.parse(url + path), body: body)).body;
+    return json.decode(response);
   }
 }
 
@@ -40,12 +40,14 @@ class FirebaseListener {
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
+      print(data);
       controller.sink.add(data);
     });
   }
 }
 
-FirebaseListener firebaseListener = FirebaseListener();
+late FirebaseListener firebaseListener;
+late String sesssionId;
 
 void main() {
   runApp(const MyApp());
@@ -59,7 +61,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(),
       home: FutureBuilder(
-          future: Firebase.initializeApp(),
+          future: _setupFirebase(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               return const PickLobbyScreen();
@@ -68,6 +70,11 @@ class MyApp extends StatelessWidget {
             }
           }),
     );
+  }
+
+  Future<void> _setupFirebase() async {
+    await Firebase.initializeApp();
+    firebaseListener = FirebaseListener();
   }
 }
 
@@ -94,7 +101,7 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
         GestureDetector(
             child: Text("Create Lobby"),
             onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterAddressPage()))),
+                MaterialPageRoute(builder: (context) => EnterHostNamePage()))),
         Container(
           width: double.infinity,
           height: 50,
@@ -108,6 +115,44 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
 
     // <CounterCubit, int>(
     //   builder: (BuildContext context, int state) {
+  }
+}
+
+class EnterHostNamePage extends StatefulWidget {
+  EnterHostNamePage({Key? key}) : super(key: key);
+
+  @override
+  _EnterHostNamePageState createState() => _EnterHostNamePageState();
+}
+
+class _EnterHostNamePageState extends State<EnterHostNamePage> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      TextField(
+        controller: _controller,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          hintText: 'Enter a search term',
+        ),
+      ),
+      GestureDetector(
+          child: Center(
+            child: Text("Enter"),
+          ),
+          onTap: () async {
+            var response = await Client().post("session", {
+              "name": _controller.text,
+              "device_id": await FirebaseMessaging.instance.getToken()
+            });
+            sesssionId = response["session_id"];
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => EnterAddressPage()));
+          })
+    ]));
   }
 }
 
@@ -138,7 +183,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
                   border: OutlineInputBorder(),
                   hintText: 'Enter a search term',
                 ),
-                onChanged: (String value) => _fetchSuggestions(value)),
+                onChanged: (String value) => _fetchSuggestions(value, context)),
             GestureDetector(
                 child: Center(
                     child: Container(
@@ -159,7 +204,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
     ));
   }
 
-  Future<void> _fetchSuggestions(String input) async {
+  Future<void> _fetchSuggestions(String input, BuildContext context) async {
     const String lang = "en";
     final String sessionToken = const Uuid().v4();
     final request =
@@ -170,7 +215,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
 
     for (int i = 0; i < min(response['predictions'].length, 10); i++) {
       final location = response['predictions'][i];
-      Widget locationWidget = _locationWidget(location);
+      Widget locationWidget = _locationWidget(location, context);
       locationWidgets.add(locationWidget);
       setState(() {});
     }
@@ -190,13 +235,10 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
 
     Position _currentPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
-    // var addresses = await Geocoder.local.findAddressesFromCoordinates(
-    //     new Coordinates(_currentPosition.latitude, _currentPosition.longitude));
-
-    // print(addresses);
+    // await Client().post()
   }
 
-  Widget _locationWidget(Map location) {
+  Widget _locationWidget(Map location, BuildContext context) {
     return GestureDetector(
         child: Container(
           height: 60,
@@ -204,8 +246,11 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
           padding: const EdgeInsets.all(10),
           child: Center(child: Text("${location["description"]}")),
         ),
-        onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => LobbyPage(isHost: true))));
+        onTap: () async {
+          var response = await Client().post("/session/$sesssionId/address", {
+            "address": location["description"],
+          });
+        });
   }
 }
 
