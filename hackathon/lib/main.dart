@@ -1,5 +1,52 @@
 import 'package:flutter/material.dart';
 
+import 'package:bloc/bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+import 'dart:math';
+import 'package:geolocator/geolocator.dart';
+
+const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
+
+class Client {
+  final String url = "";
+
+  Future<Map> get(String request, [Map queryParams = const {}]) async {
+    return json.decode((await http.get(Uri.parse(request))).body);
+  }
+
+  Future<Map> post(String path, Map body) async {
+    return {};
+  }
+}
+
+class FirebaseListener {
+  FirebaseListener() : super() {
+    _startListening();
+  }
+
+  final controller = StreamController<Map>.broadcast();
+
+  Stream<Map> get stream => controller.stream;
+
+  void dispose() {
+    controller.close();
+  }
+
+  Future<void> _startListening() async {
+    FirebaseMessaging.onMessage.listen((RemoteMessage event) {
+      Map data = json.decode(event.notification!.body!.toString());
+      controller.sink.add(data);
+    });
+  }
+}
+
+FirebaseListener firebaseListener = FirebaseListener();
+
 void main() {
   runApp(const MyApp());
 }
@@ -7,109 +54,201 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      theme: ThemeData(),
+      home: FutureBuilder(
+          future: Firebase.initializeApp(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return const PickLobbyScreen();
+            } else {
+              return const Center(child: CircularProgressIndicator());
+            }
+          }),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class PickLobbyScreen extends StatefulWidget {
+  const PickLobbyScreen({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _PickLobbyScreenState createState() => _PickLobbyScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+class _PickLobbyScreenState extends State<PickLobbyScreen> {
+  @override
+  void initState() {
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+        body: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        GestureDetector(
+            child: Text("Create Lobby"),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => EnterAddressPage()))),
+        Container(
+          width: double.infinity,
+          height: 50,
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        GestureDetector(
+          child: Text("Join Lobby"),
+        )
+      ],
+    ));
+    // return BlocListener
+
+    // <CounterCubit, int>(
+    //   builder: (BuildContext context, int state) {
+  }
+}
+
+class EnterAddressPage extends StatefulWidget {
+  EnterAddressPage({Key? key}) : super(key: key);
+
+  @override
+  _EnterAddressPageState createState() => _EnterAddressPageState();
+}
+
+class _EnterAddressPageState extends State<EnterAddressPage> {
+  final List<Widget> locationWidgets = [];
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Container(
+      padding: const EdgeInsets.only(top: 40),
+      child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(width: double.infinity),
+            TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter a search term',
+                ),
+                onChanged: (String value) => _fetchSuggestions(value)),
+            GestureDetector(
+                child: Center(
+                    child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  child: Center(child: Text("Use Current Location")),
+                )),
+                onTap: () => _useCurrentLocation()),
+            Expanded(
+              child: ListView.builder(
+                itemCount: locationWidgets.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return locationWidgets[index];
+                },
+              ),
+            ),
+          ]),
+    ));
+  }
+
+  Future<void> _fetchSuggestions(String input) async {
+    const String lang = "en";
+    final String sessionToken = const Uuid().v4();
+    final request =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&types=address&language=$lang&key=$GOOGLE_MAPS_KEY&sessiontoken=$sessionToken';
+    final response = await Client().get(request);
+
+    locationWidgets.clear();
+
+    for (int i = 0; i < min(response['predictions'].length, 10); i++) {
+      final location = response['predictions'][i];
+      Widget locationWidget = _locationWidget(location);
+      locationWidgets.add(locationWidget);
+      setState(() {});
+    }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    final GeolocatorPlatform _geolocatorPlatform = GeolocatorPlatform.instance;
+
+    LocationPermission permission = await _geolocatorPlatform.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await _geolocatorPlatform.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return;
+      }
+    }
+
+    Position _currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+    // var addresses = await Geocoder.local.findAddressesFromCoordinates(
+    //     new Coordinates(_currentPosition.latitude, _currentPosition.longitude));
+
+    // print(addresses);
+  }
+
+  Widget _locationWidget(Map location) {
+    return GestureDetector(
+        child: Container(
+          height: 60,
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          child: Center(child: Text("${location["description"]}")),
+        ),
+        onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => LobbyPage(isHost: true))));
+  }
+}
+
+class LobbyPage extends StatefulWidget {
+  final bool? isHost;
+
+  LobbyPage({@required this.isHost, Key? key}) : super(key: key);
+
+  @override
+  _LobbyPageState createState() => _LobbyPageState();
+}
+
+class _LobbyPageState extends State<LobbyPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: FutureBuilder(
+            future: _loadLobby(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                return Container(
+                  padding: const EdgeInsets.all(60),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                      ),
+                      GestureDetector(child: Text("Continue"), onTap: () {}),
+                    ],
+                  ),
+                );
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            }));
+  }
+
+  Future<void> _loadLobby() async {
+    if (widget.isHost!) {
+      // await start session
+    } else {
+      // await get friends
+    }
   }
 }

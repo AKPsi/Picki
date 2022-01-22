@@ -29,6 +29,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^0.13.3
+  bloc: ^8.0.0
+  firebase_core: ^1.11.0
+  firebase_messaging: ^11.2.5
+  address_search_field: ^4.0.1
+  flutter_google_places: ^0.3.0
+  uuid: ^3.0.5
+  geolocator: ^8.0.3
+
 
 
   # The following adds the Cupertino Icons font to your application.
