@@ -9,6 +9,8 @@ import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 
+// fc0bb8
+
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
@@ -29,25 +31,31 @@ class FirebaseListener {
     _startListening();
   }
 
-  final controller = StreamController<Map>.broadcast();
+  final friendsController = StreamController<Map>.broadcast();
+  final doneController = StreamController<Map>.broadcast();
 
-  Stream<Map> get stream => controller.stream;
+  Stream<Map> get friendsStream => friendsController.stream;
+  Stream<Map> get doneStream => doneController.stream;
 
   void dispose() {
-    controller.close();
+    friendsController.close();
+    doneController.close();
   }
 
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      print(data);
-      controller.sink.add(data);
+      if (event.notification!.title! == "friends") {
+        friendsController.sink.add(data);
+      } else if (event.notification!.title! == "done") {
+        doneController.sink.add(data);
+      }
     });
   }
 }
 
 late FirebaseListener firebaseListener;
-late String sesssionId;
+late String sessionId;
 
 void main() {
   runApp(const MyApp());
@@ -107,8 +115,9 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
           height: 50,
         ),
         GestureDetector(
-          child: Text("Join Lobby"),
-        )
+            child: Text("Join Lobby"),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => EnterGuestNamePage()))),
       ],
     ));
     // return BlocListener
@@ -148,11 +157,64 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
               "name": _controller.text,
               "device_id": await FirebaseMessaging.instance.getToken()
             });
-            sesssionId = response["session_id"];
+            sessionId = response["session_id"];
+            // print("session id: $sessionId");
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => EnterAddressPage()));
           })
     ]));
+  }
+}
+
+class EnterGuestNamePage extends StatefulWidget {
+  EnterGuestNamePage({Key? key}) : super(key: key);
+
+  @override
+  _EnterGuestNamePageState createState() => _EnterGuestNamePageState();
+}
+
+class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
+  final TextEditingController _controllerName = TextEditingController();
+  final TextEditingController _controllerSessionId = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextField(
+            controller: _controllerName,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Name',
+            )),
+        TextField(
+            controller: _controllerSessionId,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Session ID',
+            )),
+        GestureDetector(
+            child: Container(
+                width: double.infinity,
+                height: 50,
+                child: const Center(child: Text("Enter"))),
+            onTap: () => _submitData())
+      ],
+    ));
+  }
+
+  Future<void> _submitData() async {
+    final String name = _controllerName.text;
+    final String sessionId = _controllerSessionId.text;
+    final Map data = await Client().post("session/$sessionId", {
+      "name": name,
+      "device_id": await FirebaseMessaging.instance.getToken(),
+    });
+    List<dynamic> names = data["names"];
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => LobbyPage(isHost: false, names: data["names"])));
   }
 }
 
@@ -247,17 +309,21 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
           child: Center(child: Text("${location["description"]}")),
         ),
         onTap: () async {
-          var response = await Client().post("/session/$sesssionId/address", {
+          var response = await Client().post("/session/$sessionId/address", {
             "address": location["description"],
           });
+          Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => LobbyPage(isHost: true)));
         });
   }
 }
 
 class LobbyPage extends StatefulWidget {
   final bool? isHost;
+  final List<dynamic> names;
 
-  LobbyPage({@required this.isHost, Key? key}) : super(key: key);
+  LobbyPage({@required this.isHost, this.names = const [], Key? key})
+      : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
@@ -265,35 +331,59 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        body: FutureBuilder(
-            future: _loadLobby(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                return Container(
-                  padding: const EdgeInsets.all(60),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                      ),
-                      GestureDetector(child: Text("Continue"), onTap: () {}),
-                    ],
-                  ),
-                );
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
-            }));
+  void initState() {
+    super.initState();
+    _listenForFriends();
   }
 
-  Future<void> _loadLobby() async {
-    if (widget.isHost!) {
-      // await start session
-    } else {
-      // await get friends
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Container(
+      padding: const EdgeInsets.all(60),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: double.infinity,
+          ),
+          Expanded(
+              child: ListView.builder(
+            itemCount: widget.names.length,
+            itemBuilder: (context, snapshot) {
+              return Text(widget.names[snapshot]);
+            },
+          )),
+          if (widget.isHost!)
+            GestureDetector(
+                child: Text("Continue"),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => RestaurantsListPage()))),
+        ],
+      ),
+    ));
+  }
+
+  Future<void> _listenForFriends() async {
+    print("listening... ...");
+    firebaseListener.friendsStream.listen((event) {
+      print(event["name"]);
+      widget.names.add(event["name"]);
+      setState(() {});
+    });
+  }
+}
+
+class RestaurantsListPage extends StatefulWidget {
+  RestaurantsListPage({Key? key}) : super(key: key);
+
+  @override
+  _RestaurantsListPageState createState() => _RestaurantsListPageState();
+}
+
+class _RestaurantsListPageState extends State<RestaurantsListPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
   }
 }
