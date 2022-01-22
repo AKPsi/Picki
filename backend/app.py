@@ -1,3 +1,4 @@
+from http.client import RESET_CONTENT
 import requests
 import os
 import uuid
@@ -6,9 +7,6 @@ from dotenv import load_dotenv
 from flask import Flask, request
 import firebase_admin
 from firebase_admin import firestore
-
-
-RADIUS = 15000  # 15,000 m radius
 
 
 app = Flask(__name__)
@@ -40,6 +38,7 @@ def createSession():
         u'device_ids': [device_id],
         u'latitude': 0,
         u'longitude': 0,
+        u'likes': 0,
         u'restaurants': [],
         u'names': [name]
     })
@@ -108,14 +107,14 @@ def joinLobby(session_id: str):
 
     doc_dict = session_ref.get().to_dict()
 
-    for name, device_id in zip(doc_dict['names'], doc_dict['device_ids']):
+    for device_id in doc_dict['device_ids']:
         fcm_body = {
             'to': device_id,
             'notification': {
                 'title': 'user_join',
                 'body': {
-                    'name': name,
-                    'device_id': device_id
+                    'name': request.form['name'],
+                    'device_id': request.form['device_id']
                 }
             }
         }
@@ -129,7 +128,7 @@ def joinLobby(session_id: str):
     session_ref.update({
         u'names': firestore.ArrayUnion([request.form['name']]),
         u'device_ids': firestore.ArrayUnion([request.form['device_id']])
-        })    
+        })
 
     return {'session_id': session_id, 'names': doc_dict['names']}, 200
 
@@ -147,37 +146,82 @@ def start(session_id: str):
     lat, lng = doc_dict['latitude'], doc_dict['longitude']
 
     nearby_url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
-    params = {
+    nearby_params = {
         'location': f'{lat},{lng}',
-        'radius': RADIUS,
+        'rankby': 'distance',
         'type': 'restaurant',
         'key': os.environ.get('GCLOUD_MAPS_API_KEY')
         }
 
-    resp = requests.get(url=nearby_url, params=params)
-    return resp.json(), 200
+    nearby_resp = requests.get(url=nearby_url, params=nearby_params).json()
+    restaurants = []
+    added_set = set()
+    i = -1
+    while len(restaurants) < 10 and i + 1 < len(nearby_resp['results']):
+        i += 1
+        rest = nearby_resp['results'][i]
+        required_fields = set(['name', 'rating', 'user_ratings_total', 'price_level', 'business_status', 'geometry'])
+        if rest['name'] in added_set:
+            continue
+        if not all(key in rest for key in required_fields):
+            continue
+        if rest['business_status'] != 'OPERATIONAL':
+            continue
 
-    # fcm_headers = {
-    #     'Content-Type': 'application/json',
-    #     'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
-    # }
+        rest_coord = rest['geometry']['location']
+        maps_dist_url = 'https://maps.googleapis.com/maps/api/distancematrix/json'
+        dist_params = {
+            'destinations': [f"{rest_coord['lat']},{rest_coord['lng']}"],
+            'origins': [f'{lat},{lng}'],
+            'units': 'imperial',
+            'key': os.environ.get('GCLOUD_MAPS_API_KEY')
+        }
+        dist_resp = requests.get(maps_dist_url, params=dist_params).json()
 
-    # for device_id in doc_dict['device_ids']:
-    #     fcm_body = {
-    #         'to': device_id,
-    #         'notification': {
-    #             'title': 'start',
-    #             'body': {
-    #                 'restaurants': []
-    #             }
-    #         }
-    #     }
+        rest_place_id = rest['place_id']
+        place_details_url = 'https://maps.googleapis.com/maps/api/place/details/json'
+        place_details_params = {
+            'place_id': rest_place_id,
+            'fields': 'formatted_address',
+            'key': os.environ.get('GCLOUD_MAPS_API_KEY')
+            }
+        place_details_resp = requests.get(place_details_url, params=place_details_params).json()
 
-    #     requests.post(
-    #         url="https://fcm.googleapis.com/fcm/send",
-    #         headers=fcm_headers,
-    #         data=json.dumps(fcm_body)
-    #     )
+        new_rest = {}
+        new_rest['name'] = rest['name']
+        new_rest['rating'] = rest['rating']
+        new_rest['num_ratings'] = rest['user_ratings_total']
+        new_rest['price_level'] = rest['price_level']
+        new_rest['address'] = place_details_resp['result']['formatted_address']
+        new_rest['distance'] = dist_resp['rows'][0]['elements'][0]['distance']['text']
+        added_set.add(rest['name'])
+        restaurants.append(new_rest)
+
+    session_ref.update({u'restaurants': firestore.ArrayUnion(restaurants)})
+
+    fcm_headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
+    }
+
+    for device_id in doc_dict['device_ids']:
+        fcm_body = {
+            'to': device_id,
+            'notification': {
+                'title': 'start',
+                'body': {
+                    'restaurants': restaurants
+                }
+            }
+        }
+
+        requests.post(
+            url="https://fcm.googleapis.com/fcm/send",
+            headers=fcm_headers,
+            data=json.dumps(fcm_body)
+        )
+
+    return {'restaurants': restaurants}, 200
 
 
 if __name__ == "__main__":
