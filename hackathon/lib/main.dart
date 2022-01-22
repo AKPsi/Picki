@@ -31,28 +31,54 @@ class FirebaseListener {
     _startListening();
   }
 
-  final friendsController = StreamController<Map>.broadcast();
-  final doneController = StreamController<Map>.broadcast();
+  final joinController = StreamController<Map>.broadcast();
+  final startController = StreamController<Map>.broadcast();
+  final finishController = StreamController<Map>.broadcast();
 
-  Stream<Map> get friendsStream => friendsController.stream;
-  Stream<Map> get doneStream => doneController.stream;
+  Stream<Map> get joinStream => joinController.stream;
+  Stream<Map> get startStream => startController.stream;
+  Stream<Map> get finishStream => finishController.stream;
 
-  void dispose() {
-    friendsController.close();
-    doneController.close();
-  }
+  void dispose() {}
 
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      if (event.notification!.title! == "friends") {
-        friendsController.sink.add(data);
-      } else if (event.notification!.title! == "done") {
-        doneController.sink.add(data);
+      // print(data);
+      // print(event.notification!.title!);
+      if (event.notification!.title! == "join") {
+        // print("join");
+        joinController.sink.add(data);
+      } else if (event.notification!.title! == "start") {
+        // print("start");
+        startController.sink.add(data);
+      } else if (event.notification!.title! == "finish") {
+        // print("finish");
+        finishController.sink.add(data);
       }
     });
   }
 }
+
+class Restaurant {
+  late String address;
+  late String distance;
+  late int numRatings;
+  late int priceLevel;
+  late String name;
+  late double rating;
+
+  Restaurant.fromJson(Map json) {
+    this.address = json["address"];
+    this.distance = json["distance"];
+    this.numRatings = int.parse(json["numRatings"]);
+    this.priceLevel = int.parse(json["price_level"]);
+    this.name = json["name"];
+    this.rating = double.parse(json["rating"]);
+  }
+}
+
+// "{address: 128 Pierce St, West Lafayette, IN 47906, USA, distance: 0.3 mi, numRatings: 26, price_level: 2, name: NO 2 ASIAN KITCHEN, rating: 3.3}"
 
 late FirebaseListener firebaseListener;
 late String sessionId;
@@ -334,6 +360,7 @@ class _LobbyPageState extends State<LobbyPage> {
   void initState() {
     super.initState();
     _listenForFriends();
+    _listenForRestaurants(context);
   }
 
   @override
@@ -357,25 +384,38 @@ class _LobbyPageState extends State<LobbyPage> {
           if (widget.isHost!)
             GestureDetector(
                 child: Text("Continue"),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => RestaurantsListPage()))),
+                onTap: () => Client().post("session/$sessionId/start", {})),
         ],
       ),
     ));
   }
 
   Future<void> _listenForFriends() async {
-    print("listening... ...");
-    firebaseListener.friendsStream.listen((event) {
-      print(event["name"]);
+    firebaseListener.joinStream.listen((event) {
       widget.names.add(event["name"]);
       setState(() {});
+    });
+  }
+
+  Future<void> _listenForRestaurants(BuildContext context) async {
+    firebaseListener.startStream.listen((event) {
+      List<Restaurant> restaurants = [];
+      // List<Map> restaurantMaps = event["restaruants"];
+      print(event);
+      print(event["restaurants"]);
+      // for (int i = 0; i < restaurantMaps.length; i++) {
+      //   restaurants.add(Restaurant.fromJson(restaurantMaps[i]));
+      // }
+      // Navigator.of(context).push(MaterialPageRoute(
+      //     builder: (context) => RestaurantsListPage(restaurants: restaurants)));
     });
   }
 }
 
 class RestaurantsListPage extends StatefulWidget {
-  RestaurantsListPage({Key? key}) : super(key: key);
+  final List<Restaurant>? restaurants;
+
+  RestaurantsListPage({Key? key, @required this.restaurants}) : super(key: key);
 
   @override
   _RestaurantsListPageState createState() => _RestaurantsListPageState();
@@ -384,6 +424,18 @@ class RestaurantsListPage extends StatefulWidget {
 class _RestaurantsListPageState extends State<RestaurantsListPage> {
   @override
   Widget build(BuildContext context) {
+    print(widget.restaurants);
+
+    return Container();
+  }
+
+  Widget _restaurantWidget() {
+    return Container();
+  }
+
+  Widget _restaurantPictureWidget() {
     return Container();
   }
 }
+
+// {"restaurants": [{"address": "135 S Chauncey Ave #2G, West Lafayette, IN 47906, USA", "distance": "0.5 mi", "num_ratings": "116", "price_level": "2", "name": "Hala's Grill", "rating": "4.7"}, {"address": "135 S Chauncey Ave # 2C, West Lafayette, IN 47906, USA", "distance": "0.5 mi", "num_ratings": "337", "price_level": "2", "name": "Basil Thai Restaurant", "rating": "4.1"}]}
