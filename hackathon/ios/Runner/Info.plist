@@ -54,16 +54,5 @@
 
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs access to location when open and in the background.</string>
-	<key>NSAppTransportSecurity</key> 
-	<dict>
-	<key>NSExceptionDomains</key>
-	<dict>
-		<key>10.184.30.198</key>
-		<dict>
-		<key>NSExceptionAllowsInsecureHTTPLoads</key>
-		<true/>
-		</dict>
-	</dict>
-	</dict>
 </dict>
 </plist>

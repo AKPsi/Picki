@@ -31,18 +31,25 @@ class FirebaseListener {
     _startListening();
   }
 
-  final controller = StreamController<Map>.broadcast();
+  final friendsController = StreamController<Map>.broadcast();
+  final doneController = StreamController<Map>.broadcast();
 
-  Stream<Map> get stream => controller.stream;
+  Stream<Map> get friendsStream => friendsController.stream;
+  Stream<Map> get doneStream => doneController.stream;
 
   void dispose() {
-    controller.close();
+    friendsController.close();
+    doneController.close();
   }
 
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      controller.sink.add(data);
+      if (event.notification!.title! == "friends") {
+        friendsController.sink.add(data);
+      } else if (event.notification!.title! == "done") {
+        doneController.sink.add(data);
+      }
     });
   }
 }
@@ -205,8 +212,9 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
       "name": name,
       "device_id": await FirebaseMessaging.instance.getToken(),
     });
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => LobbyPage(isHost: false)));
+    List<dynamic> names = data["names"];
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) => LobbyPage(isHost: false, names: data["names"])));
   }
 }
 
@@ -312,8 +320,10 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
 
 class LobbyPage extends StatefulWidget {
   final bool? isHost;
+  final List<dynamic> names;
 
-  LobbyPage({@required this.isHost, Key? key}) : super(key: key);
+  LobbyPage({@required this.isHost, this.names = const [], Key? key})
+      : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
@@ -321,35 +331,59 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        body: FutureBuilder(
-            future: _loadLobby(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                return Container(
-                  padding: const EdgeInsets.all(60),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                      ),
-                      GestureDetector(child: Text("Continue"), onTap: () {}),
-                    ],
-                  ),
-                );
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
-            }));
+  void initState() {
+    super.initState();
+    _listenForFriends();
   }
 
-  Future<void> _loadLobby() async {
-    if (widget.isHost!) {
-      // await start session
-    } else {
-      // await get friends
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Container(
+      padding: const EdgeInsets.all(60),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: double.infinity,
+          ),
+          Expanded(
+              child: ListView.builder(
+            itemCount: widget.names.length,
+            itemBuilder: (context, snapshot) {
+              return Text(widget.names[snapshot]);
+            },
+          )),
+          if (widget.isHost!)
+            GestureDetector(
+                child: Text("Continue"),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => RestaurantsListPage()))),
+        ],
+      ),
+    ));
+  }
+
+  Future<void> _listenForFriends() async {
+    print("listening... ...");
+    firebaseListener.stream.listen((event) {
+      print(event["name"]);
+      widget.names.add(event["name"]);
+      setState(() {});
+    });
+  }
+}
+
+class RestaurantsListPage extends StatefulWidget {
+  RestaurantsListPage({Key? key}) : super(key: key);
+
+  @override
+  _RestaurantsListPageState createState() => _RestaurantsListPageState();
+}
+
+class _RestaurantsListPageState extends State<RestaurantsListPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
   }
 }
