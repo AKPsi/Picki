@@ -1,0 +1,4 @@
+.vscode/
+backend/.env
+backend/firebaseServiceAccount.json
+backend/venv/
