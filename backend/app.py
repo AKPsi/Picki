@@ -1,5 +1,7 @@
 import requests
 import os
+import uuid
+import json
 from urllib.parse import quote
 from dotenv import load_dotenv
 from flask import Flask, request
@@ -21,13 +23,17 @@ def createSession():
         }, 400
     if 'device_id' not in request.form:
         return {
-            'message': "Error! 'deviceID' not found in request."
+            'message': "Error! 'device_id' not found in request."
         }, 400
 
     name = request.form['name']
     device_id = request.form['device_id']
 
-    session_ref = db.collection(u'sessions').document()
+    session_id = str(uuid.uuid4())[0:6]
+    while db.collection(u'sessions').document(session_id).get().exists:
+        session_id = str(uuid.uuid4())[0:6]
+
+    session_ref = db.collection(u'sessions').document(session_id)
     session_ref.set({
         u'device_ids': [device_id],
         u'user_address': '',
@@ -39,7 +45,7 @@ def createSession():
 
 
 @app.route('/session/<session_id>/address', methods=['POST'])
-def addresss(session_id):
+def address(session_id: str):
     if not db.collection(u'sessions').document(session_id).get().exists:
         return {
             'message': "Error! Invalid session ID."
@@ -69,6 +75,55 @@ def addresss(session_id):
     session_ref.update({u'user_address': fmt_address})
 
     return {'address': fmt_address}, 200
+
+
+@app.route('/session/<session_id>', methods=['POST'])
+def joinLobby(session_id: str):
+    if 'name' not in request.form:
+        return {
+            'message': "Error! 'name' not found in request."
+        }, 400
+    if 'device_id' not in request.form:
+        return {
+            'message': "Error! 'device_id' not found in request."
+        }, 400
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    session_ref.update({
+        u'names': firestore.ArrayUnion([request.form['name']]),
+        u'device_ids': firestore.ArrayUnion([request.form['device_id']])
+        })
+
+    fcm_headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
+    }
+
+    doc_dict = session_ref.get().to_dict()
+
+    for name, device_id in zip(doc_dict['names'], doc_dict['device_ids']):
+        fcm_body = {
+            'to': device_id,
+            'notification': {
+                'title': 'user_join',
+                'body': {
+                    'name': name,
+                    'device_id': device_id
+                }
+            }
+        }
+
+        requests.post(
+            url="https://fcm.googleapis.com/fcm/send",
+            headers=fcm_headers,
+            data=json.dumps(fcm_body)
+        )
+
+    return {'session_id': session_id}, 200
 
 
 if __name__ == "__main__":
