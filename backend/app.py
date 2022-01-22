@@ -199,29 +199,29 @@ def start(session_id: str):
 
     session_ref.update({u'restaurants': firestore.ArrayUnion(restaurants)})
 
+    fcm_headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
+    }
+
+    for device_id in doc_dict['device_ids']:
+        fcm_body = {
+            'to': device_id,
+            'notification': {
+                'title': 'start',
+                'body': {
+                    'restaurants': restaurants
+                }
+            }
+        }
+
+        fcm_resp = requests.post(
+            url="https://fcm.googleapis.com/fcm/send",
+            headers=fcm_headers,
+            data=json.dumps(fcm_body)
+        )
+
     return {'restaurants': restaurants}, 200
-
-    # fcm_headers = {
-    #     'Content-Type': 'application/json',
-    #     'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
-    # }
-
-    # for device_id in doc_dict['device_ids']:
-    #     fcm_body = {
-    #         'to': device_id,
-    #         'notification': {
-    #             'title': 'start',
-    #             'body': {
-    #                 'restaurants': []
-    #             }
-    #         }
-    #     }
-
-    #     requests.post(
-    #         url="https://fcm.googleapis.com/fcm/send",
-    #         headers=fcm_headers,
-    #         data=json.dumps(fcm_body)
-    #     )
 
 
 if __name__ == "__main__":
