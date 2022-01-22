@@ -215,7 +215,7 @@ def start(session_id: str):
             }
         }
 
-        fcm_resp = requests.post(
+        requests.post(
             url="https://fcm.googleapis.com/fcm/send",
             headers=fcm_headers,
             data=json.dumps(fcm_body)
