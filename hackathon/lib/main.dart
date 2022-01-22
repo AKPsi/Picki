@@ -9,6 +9,8 @@ import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 
+// fc0bb8
+
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
@@ -40,14 +42,13 @@ class FirebaseListener {
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      print(data);
       controller.sink.add(data);
     });
   }
 }
 
 late FirebaseListener firebaseListener;
-late String sesssionId;
+late String sessionId;
 
 void main() {
   runApp(const MyApp());
@@ -107,8 +108,9 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
           height: 50,
         ),
         GestureDetector(
-          child: Text("Join Lobby"),
-        )
+            child: Text("Join Lobby"),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => EnterGuestNamePage()))),
       ],
     ));
     // return BlocListener
@@ -148,11 +150,63 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
               "name": _controller.text,
               "device_id": await FirebaseMessaging.instance.getToken()
             });
-            sesssionId = response["session_id"];
+            sessionId = response["session_id"];
+            // print("session id: $sessionId");
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => EnterAddressPage()));
           })
     ]));
+  }
+}
+
+class EnterGuestNamePage extends StatefulWidget {
+  EnterGuestNamePage({Key? key}) : super(key: key);
+
+  @override
+  _EnterGuestNamePageState createState() => _EnterGuestNamePageState();
+}
+
+class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
+  final TextEditingController _controllerName = TextEditingController();
+  final TextEditingController _controllerSessionId = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextField(
+            controller: _controllerName,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Name',
+            )),
+        TextField(
+            controller: _controllerSessionId,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Session ID',
+            )),
+        GestureDetector(
+            child: Container(
+                width: double.infinity,
+                height: 50,
+                child: const Center(child: Text("Enter"))),
+            onTap: () => _submitData())
+      ],
+    ));
+  }
+
+  Future<void> _submitData() async {
+    final String name = _controllerName.text;
+    final String sessionId = _controllerSessionId.text;
+    final Map data = await Client().post("session/$sessionId", {
+      "name": name,
+      "device_id": await FirebaseMessaging.instance.getToken(),
+    });
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => LobbyPage(isHost: false)));
   }
 }
 
@@ -247,9 +301,11 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
           child: Center(child: Text("${location["description"]}")),
         ),
         onTap: () async {
-          var response = await Client().post("/session/$sesssionId/address", {
+          var response = await Client().post("/session/$sessionId/address", {
             "address": location["description"],
           });
+          Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => LobbyPage(isHost: true)));
         });
   }
 }
