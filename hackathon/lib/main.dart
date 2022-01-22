@@ -366,7 +366,7 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Future<void> _listenForFriends() async {
     print("listening... ...");
-    firebaseListener.stream.listen((event) {
+    firebaseListener.friendsStream.listen((event) {
       print(event["name"]);
       widget.names.add(event["name"]);
       setState(() {});
