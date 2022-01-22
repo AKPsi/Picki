@@ -181,4 +181,8 @@ def start(session_id: str):
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     app.run(port=4576, host='127.0.0.1', debug=True)
+=======
+    app.run(port=5000, host='0.0.0.0', debug=True)
+>>>>>>> 43556fae1a765b08c30b198f129d4e4534330bc3
