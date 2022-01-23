@@ -653,7 +653,6 @@ class _LobbyPageState extends State<LobbyPage> {
                   margin: EdgeInsets.fromLTRB(0, 30, 0, 30),
                   height: 500,
                   decoration: BoxDecoration(
-<<<<<<< HEAD
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: GREY),
                       color: Colors.white,
@@ -681,27 +680,6 @@ class _LobbyPageState extends State<LobbyPage> {
                         ),
                       ),
                     ],
-=======
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: GREY),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.75),
-                        spreadRadius: 1,
-                        blurRadius: 2,
-                        offset: Offset(0, 2), // changes position of shadow
-                      ),
-                    ],
-                  ),
-                  child: ListView.builder(
-                    key: UniqueKey(),
-                    itemCount: names.length,
-                    itemBuilder: (context, index) {
-                      print(index);
-                      return _guestWidget(names[index]);
-                    },
->>>>>>> ddf9fb4822afe767144171aeee341034a94b63c6
                   )),
               if (widget.isHost!)
                 GestureDetector(
@@ -739,7 +717,6 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Widget _guestWidget(String name) {
     return Container(
-<<<<<<< HEAD
       padding: EdgeInsets.only(top: 5, bottom: 5, left: 20, right: 20),
       child: Container(
         width: double.infinity,
@@ -761,15 +738,6 @@ class _LobbyPageState extends State<LobbyPage> {
           ],
         )),
     );
-=======
-        width: double.infinity,
-        height: 20,
-        padding: EdgeInsets.only(left: 40),
-        child: Text(name,
-            textAlign: TextAlign.start,
-            style: TextStyle(
-                color: BLACK, fontSize: 20, fontWeight: FontWeight.w500)));
->>>>>>> ddf9fb4822afe767144171aeee341034a94b63c6
   }
 
   Future<void> _listenForFriends() async {
@@ -1068,6 +1036,11 @@ class _ResultsPageState extends State<ResultsPage> {
     String priceLevel = "\$" * restaurant.priceLevel; 
     return Container(
         margin: EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: LIGHTGREY,
+          border: Border.all(color: LIGHTGREY),
+          borderRadius: BorderRadius.circular(40)
+        ),
         child: Column(
           children: [
             Container(

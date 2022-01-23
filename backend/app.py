@@ -294,7 +294,7 @@ def userFinish(session_id: str):
     doc_dict = session_ref.get().to_dict()
     num_users = len(doc_dict['names'])
 
-    if doc_dict['finished'] == num_users:
+    if doc_dict['finished'] >= num_users - 1:
         fcm_headers = {
             'Content-Type': 'application/json',
             'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
