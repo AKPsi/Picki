@@ -22,6 +22,7 @@ class Client {
 
   Future<Map> post(String path, Map body) async {
     final response = (await http.post(Uri.parse(url + path), body: body)).body;
+    print(response);
     return json.decode(response);
   }
 }
@@ -44,7 +45,7 @@ class FirebaseListener {
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      // print(data);
+      print(data);
       // print(event.notification!.title!);
       if (event.notification!.title! == "join") {
         // print("join");
@@ -67,14 +68,23 @@ class Restaurant {
   late int priceLevel;
   late String name;
   late double rating;
+  late int id;
+  late List<String> pictures;
 
-  Restaurant.fromJson(Map json) {
+  Restaurant.fromJson(Map json, int id) {
     this.address = json["address"];
     this.distance = json["distance"];
-    this.numRatings = int.parse(json["numRatings"]);
+    this.numRatings = int.parse(json["num_ratings"]);
     this.priceLevel = int.parse(json["price_level"]);
     this.name = json["name"];
     this.rating = double.parse(json["rating"]);
+    this.id = id;
+
+    this.pictures = [
+      'https://picsum.photos/250?image=9',
+      'https://picsum.photos/250?image=10',
+      'https://picsum.photos/250?image=11',
+    ];
   }
 }
 
@@ -129,27 +139,42 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        GestureDetector(
-            child: Text("Create Lobby"),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterHostNamePage()))),
+        Container(),
+        Container(child: Container()),
         Container(
-          width: double.infinity,
-          height: 50,
-        ),
-        GestureDetector(
-            child: Text("Join Lobby"),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterGuestNamePage()))),
+          padding: EdgeInsets.only(bottom: 40),
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            GestureDetector(
+                child: _lobbyButton("CREATE A LOBBY", Colors.red, Colors.white),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => EnterHostNamePage()))),
+            GestureDetector(
+                child: _lobbyButton("JOIN A LOBBY", Colors.white, Colors.black),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => EnterGuestNamePage()))),
+          ]),
+        )
       ],
     ));
     // return BlocListener
 
     // <CounterCubit, int>(
     //   builder: (BuildContext context, int state) {
+  }
+
+  Widget _lobbyButton(String name, Color mainColor, Color outlineColor) {
+    return Container(
+        width: 160,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: mainColor,
+        ),
+        child: Center(child: Text(name, textAlign: TextAlign.center)));
   }
 }
 
@@ -184,7 +209,7 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
               "device_id": await FirebaseMessaging.instance.getToken()
             });
             sessionId = response["session_id"];
-            // print("session id: $sessionId");
+            print(sessionId);
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => EnterAddressPage()));
           })
@@ -233,7 +258,7 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
 
   Future<void> _submitData() async {
     final String name = _controllerName.text;
-    final String sessionId = _controllerSessionId.text;
+    sessionId = _controllerSessionId.text;
     final Map data = await Client().post("session/$sessionId", {
       "name": name,
       "device_id": await FirebaseMessaging.instance.getToken(),
@@ -403,11 +428,13 @@ class _LobbyPageState extends State<LobbyPage> {
       // List<Map> restaurantMaps = event["restaruants"];
       print(event);
       print(event["restaurants"]);
-      // for (int i = 0; i < restaurantMaps.length; i++) {
-      //   restaurants.add(Restaurant.fromJson(restaurantMaps[i]));
-      // }
-      // Navigator.of(context).push(MaterialPageRoute(
-      //     builder: (context) => RestaurantsListPage(restaurants: restaurants)));
+      for (int i = 0; i < event["restaurants"].length; i++) {
+        Restaurant restaurant = Restaurant.fromJson(event["restaurants"][i], i);
+        restaurants.add(restaurant);
+      }
+
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => RestaurantsListPage(restaurants: restaurants)));
     });
   }
 }
@@ -422,19 +449,132 @@ class RestaurantsListPage extends StatefulWidget {
 }
 
 class _RestaurantsListPageState extends State<RestaurantsListPage> {
+  int restaurantIndex = 0;
+  int pictureId = 0;
+  bool acceptTaps = true;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    print(widget.restaurants);
+    print(pictureId);
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
 
-    return Container();
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+              padding: const EdgeInsets.all(60),
+              child: _restaurantWidget(widget.restaurants![restaurantIndex])),
+          Column(children: [
+            Row(children: [
+              GestureDetector(
+                  child: Container(
+                      width: .5 * width,
+                      height: .5 * height,
+                      color: Colors.red.withOpacity(.3)),
+                  onTap: () {
+                    if (acceptTaps) {
+                      acceptTaps = false;
+                      pictureId = max(pictureId - 1, 0);
+
+                      setState(() {});
+                      acceptTaps = true;
+                    }
+                  }),
+              GestureDetector(
+                  child: Container(
+                      width: .5 * width,
+                      height: .5 * height,
+                      color: Colors.green.withOpacity(.3)),
+                  onTap: () {
+                    if (acceptTaps) {
+                      acceptTaps = false;
+                      pictureId = min(
+                          pictureId + 1,
+                          widget.restaurants![restaurantIndex].pictures.length -
+                              1);
+                      setState(() {});
+                      acceptTaps = true;
+                    }
+                  })
+            ]),
+            Row(
+              children: [
+                GestureDetector(
+                    child: Container(
+                        width: .5 * width,
+                        height: .5 * height,
+                        color: Colors.blue.withOpacity(.3)),
+                    onTap: () {
+                      if (acceptTaps) {
+                        acceptTaps = false;
+                        _sendDecisionToBackend(
+                            widget.restaurants![restaurantIndex], true);
+                        acceptTaps = true;
+                      }
+                    }),
+                GestureDetector(
+                    child: Container(
+                        width: .5 * width,
+                        height: .5 * height,
+                        color: Colors.yellow.withOpacity(.3)),
+                    onTap: () {
+                      if (acceptTaps) {
+                        acceptTaps = false;
+                        _sendDecisionToBackend(
+                            widget.restaurants![restaurantIndex], true);
+                        acceptTaps = true;
+                      }
+                    })
+              ],
+            )
+          ])
+        ],
+      ),
+    );
   }
 
-  Widget _restaurantWidget() {
-    return Container();
+  Widget _restaurantWidget(Restaurant restaurant) {
+    return Column(
+      children: [
+        Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                  fit: BoxFit.fitHeight,
+                  image: NetworkImage(restaurant.pictures[pictureId])),
+            ),
+            height: 360,
+            width: 240),
+        Column(
+          children: [
+            Text(restaurant.name),
+            Text(restaurant.address),
+            Text(restaurant.distance),
+            Text("${restaurant.numRatings}"),
+            Text("${restaurant.priceLevel}"),
+            Text("${restaurant.rating}")
+          ],
+        )
+      ],
+    );
   }
 
-  Widget _restaurantPictureWidget() {
-    return Container();
+  Future<void> _sendDecisionToBackend(Restaurant restaurant, bool like) async {
+    await Client().post("session/$sessionId/restaurant/${restaurant.id}",
+        {"like": like.toString()});
+    pictureId = 0;
+    restaurantIndex++;
+    if (restaurantIndex == widget.restaurants!.length) {
+      await Client().post("session/$sessionId/finish", {"name": "name"});
+      print("Done");
+    } else {
+      setState(() {});
+    }
   }
 }
 
