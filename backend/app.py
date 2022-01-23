@@ -168,7 +168,7 @@ def start(session_id: str):
     restaurants = []
     added_set = set()
     i = -1
-    while len(restaurants) < 6 and i + 1 < len(nearby_resp['results']):
+    while len(restaurants) < 10 and i + 1 < len(nearby_resp['results']):
         i += 1
         rest = nearby_resp['results'][i]
         required_fields = set(['name', 'rating', 'user_ratings_total', 'price_level', 'business_status', 'geometry'])
@@ -227,7 +227,7 @@ def start(session_id: str):
             'notification': {
                 'title': 'start',
                 'body': {
-                    'message': 'start'
+                    'restaurants': restaurants
                 }
             }
         }
@@ -241,19 +241,7 @@ def start(session_id: str):
     return {'restaurants': restaurants}, 200
 
 
-@app.route('/session/<session_id>/restaurants', methods=['GET'])
-def restaurants(session_id: str):
-    if not db.collection(u'sessions').document(session_id).get().exists:
-        return {
-            'message': "Error! Invalid session ID."
-        }, 400
-
-    session_ref = db.collection(u'sessions').document(session_id)
-    doc_dict = session_ref.get().to_dict()
-    return {'restaurants': doc_dict['restaurants']}, 200
-
-
-@app.route('/session/<session_id>/restaurants/<restaurant_id>', methods=['POST'])
+@app.route('/session/<session_id>/restaurant/<restaurant_id>', methods=['POST'])
 def restaurantSwipe(session_id: str, restaurant_id: str):
     if 'like' not in request.form:
         return {

@@ -48,13 +48,13 @@ class FirebaseListener {
   Future<void> _startListening() async {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
-      print(data);
-      print(event.notification!.title!);
+      // print(data);
+      // print(event.notification!.title!);
       if (event.notification!.title! == "user_join") {
         // print("join");
         joinController.sink.add(data);
       } else if (event.notification!.title! == "start") {
-        print("start");
+        // print("start");
         startController.sink.add(data);
       } else if (event.notification!.title! == "finish") {
         // print("finish");
@@ -72,7 +72,7 @@ class Restaurant {
   late String name;
   late var rating;
   late int id;
-  late List<String> pictures;
+  late List<dynamic> photos;
 
   Restaurant.fromJson(Map json, int id) {
     this.address = json["address"];
@@ -82,12 +82,7 @@ class Restaurant {
     this.name = json["name"];
     this.rating = json["rating"];
     this.id = id;
-
-    this.pictures = [
-      'https://picsum.photos/250?image=9',
-      'https://picsum.photos/250?image=10',
-      'https://picsum.photos/250?image=11',
-    ];
+    this.photos = json["photos"];
   }
 }
 
@@ -240,7 +235,7 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
                 "device_id": await FirebaseMessaging.instance.getToken()
               });
               sessionId = response["session_id"];
-              print(sessionId);
+              // print(sessionId);
               Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => EnterAddressPage()));
             })
@@ -474,8 +469,8 @@ class _LobbyPageState extends State<LobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    print("rebuilding...");
-    print(names);
+    // print("rebuilding...");
+    // print(names);
     return Scaffold(
         key: UniqueKey(),
         body: Container(
@@ -529,7 +524,7 @@ class _LobbyPageState extends State<LobbyPage> {
                     key: UniqueKey(),
                     itemCount: names.length,
                     itemBuilder: (context, index) {
-                      print(index);
+                      // print(index);
                       return Text(names[index]);
                     },
                   )),
@@ -555,7 +550,7 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
-      print(event["name"]);
+      // print(event["name"]);
       setState(() {
         names = names + [event["name"]];
       });
@@ -564,20 +559,20 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Future<void> _listenForRestaurants(BuildContext context) async {
     firebaseListener.startStream.listen((event) async {
-      print("got event");
+      // print("got event");
       var response =
           await Client().get(Client().url + "session/$sessionId/restaurants");
-      print(response);
+      // print(response);
 
       List<Restaurant> restaurants = [];
 
-      print("restaurants ${response["restaurants"].length}");
+      // print("restaurants ${response["restaurants"].length}");
       for (int i = 0; i < response["restaurants"].length; i++) {
         Restaurant restaurant =
             Restaurant.fromJson(response["restaurants"][i], i);
         restaurants.add(restaurant);
       }
-      print("parsed restaurants");
+      // print("parsed restaurants");
 
       Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => RestaurantsListPage(restaurants: restaurants)));
@@ -628,6 +623,9 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
     double width = MediaQuery.of(context).size.width;
     double height = 540;
     Restaurant restaurant = widget.restaurants![restaurantIndex];
+    String photo =
+        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${restaurant.photos[pictureId].toString()}&key=$GOOGLE_MAPS_KEY";
+    print(photo);
     return Stack(
       children: [
         Container(
@@ -641,8 +639,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                     image: DecorationImage(
-                        fit: BoxFit.fitHeight,
-                        image: NetworkImage(restaurant.pictures[pictureId])),
+                        fit: BoxFit.fitHeight, image: NetworkImage(photo)),
                   ),
                   height: 420,
                   width: double.infinity),
@@ -701,7 +698,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
                 if (acceptTaps) {
                   acceptTaps = false;
                   pictureId = min(pictureId + 1,
-                      widget.restaurants![restaurantIndex].pictures.length - 1);
+                      widget.restaurants![restaurantIndex].photos.length - 1);
                   setState(() {});
                   acceptTaps = true;
                 }
@@ -752,7 +749,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
     if (restaurantIndex == widget.restaurants!.length) {
       await Client().post("session/$sessionId/finish", {"name": "name"});
       Navigator.of(context)
-          .push(MaterialPageRoute(builder: (context) => EnterHostNamePage()));
+          .push(MaterialPageRoute(builder: (context) => WaitingScreen()));
     } else {
       setState(() {});
     }
