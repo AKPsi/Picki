@@ -54,7 +54,7 @@ def createSession():
         u'names': [name]
     })
 
-    return {'session_id': session_ref.id}, 201
+    return {'session_id': session_id}, 201
 
 
 @app.route('/session/<session_id>/address', methods=['POST'])
@@ -193,7 +193,7 @@ def start(session_id: str):
         place_details_url = 'https://maps.googleapis.com/maps/api/place/details/json'
         place_details_params = {
             'place_id': rest_place_id,
-            'fields': 'formatted_address',
+            'fields': 'formatted_address,photos',
             'key': os.environ.get('GCLOUD_MAPS_API_KEY')
             }
         place_details_resp = requests.get(place_details_url, params=place_details_params).json()
@@ -204,6 +204,7 @@ def start(session_id: str):
         new_rest['num_ratings'] = rest['user_ratings_total']
         new_rest['price_level'] = rest['price_level']
         new_rest['address'] = place_details_resp['result']['formatted_address']
+        new_rest['photos'] = [x['photo_reference'] for x in place_details_resp['result']['photos']]
         new_rest['distance'] = dist_resp['rows'][0]['elements'][0]['distance']['text']
         added_set.add(rest['name'])
         restaurants.append(new_rest)
