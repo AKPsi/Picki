@@ -8,6 +8,10 @@ from flask import Flask, request
 from firebase_admin import firestore, initialize_app
 
 
+NUM_PICS = 3
+NUM_RESTAURANTS = 6
+
+
 app = Flask(__name__)
 load_dotenv()
 initialize_app()
@@ -83,7 +87,7 @@ def address(session_id: str):
         location = response['candidates'][0]['geometry']['location']
         lat, lng = location['lat'], location['lng']
     elif 'latitude' and 'longitude' in request.form:
-        lat, lng = request.form['latitude'], request.form['longitude']
+        lat, lng = float(request.form['latitude']), float(request.form['longitude'])
     else:
         return {
             'message': "Error! neither address, latitutde, nor longitude found in request."
@@ -168,7 +172,7 @@ def start(session_id: str):
     restaurants = []
     added_set = set()
     i = -1
-    while len(restaurants) < 6 and i + 1 < len(nearby_resp['results']):
+    while len(restaurants) < NUM_RESTAURANTS and i + 1 < len(nearby_resp['results']):
         i += 1
         rest = nearby_resp['results'][i]
         required_fields = set(['name', 'rating', 'user_ratings_total', 'price_level', 'business_status', 'geometry'])
@@ -204,7 +208,7 @@ def start(session_id: str):
         new_rest['num_ratings'] = rest['user_ratings_total']
         new_rest['price_level'] = rest['price_level']
         new_rest['address'] = place_details_resp['result']['formatted_address']
-        new_rest['photos'] = [x['photo_reference'] for x in place_details_resp['result']['photos']]
+        new_rest['photos'] = [x['photo_reference'] for x in place_details_resp['result']['photos']][:min(NUM_PICS, len(place_details_resp['result']['photos']))]
         new_rest['distance'] = dist_resp['rows'][0]['elements'][0]['distance']['text']
         added_set.add(rest['name'])
         restaurants.append(new_rest)
@@ -284,13 +288,7 @@ def userFinish(session_id: str):
     session_ref.update({'finished': firestore.Increment(1)})
 
     doc_dict = session_ref.get().to_dict()
-    restaurants = doc_dict['restaurants']
     num_users = len(doc_dict['names'])
-
-    con, cur = connectToDB('app.db')
-    cur.execute("SELECT restaurant_id FROM sessions WHERE session = ? ORDER BY likes DESC", (session_id,))
-    ranking = [rank[0] for rank in cur.fetchall()]
-    closeDB(con)
 
     if doc_dict['finished'] == num_users:
         fcm_headers = {
@@ -304,7 +302,7 @@ def userFinish(session_id: str):
                 'notification': {
                     'title': 'done',
                     'body': {
-                        [restaurants[rank] for rank in ranking]
+                        'message': 'Voting finished.'
                     }
                 }
             }
@@ -315,7 +313,27 @@ def userFinish(session_id: str):
                 data=json.dumps(fcm_body)
             )
 
-    return {'message': f"{doc_dict['finished']} out of {num_users} users finished."}, 200
+    return {'message': f"{doc_dict['finished']}/{num_users} users finished."}, 200
+
+
+@app.route('/session/<session_id>/restaurants/ranks', methods=['GET'])
+def ranks(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    doc_dict = session_ref.get().to_dict()
+
+    con, cur = connectToDB('app.db')
+    cur.execute("SELECT restaurant_id FROM sessions WHERE session = ? ORDER BY likes DESC", (session_id,))
+    ranking = [rank[0] for rank in cur.fetchall()]
+    closeDB(con)
+
+    restaurants = doc_dict['restaurants']
+
+    return {'ranking': [restaurants[rank] for rank in ranking]}, 200
 
 
 if __name__ == "__main__":
