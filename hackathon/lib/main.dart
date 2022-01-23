@@ -974,6 +974,7 @@ class _ResultsPageState extends State<ResultsPage> {
   }
 
   Widget _restaurantWidget(Restaurant restaurant) {
+    String priceLevel = "\$" * restaurant.priceLevel; 
     return Container(
         margin: EdgeInsets.only(bottom: 20),
         child: Column(
@@ -990,7 +991,7 @@ class _ResultsPageState extends State<ResultsPage> {
                 child:
                     Text(restaurant.distance, style: TextStyle(fontSize: 14))),
             Container(
-                child: Text("${restaurant.priceLevel}",
+                child: Text("${priceLevel}",
                     style: TextStyle(fontSize: 14))),
           ],
         ));
