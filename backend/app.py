@@ -1,18 +1,25 @@
-from http.client import RESET_CONTENT
 import requests
 import os
 import uuid
 import json
+import sqlite3
 from dotenv import load_dotenv
 from flask import Flask, request
-import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import firestore, initialize_app
 
 
 app = Flask(__name__)
 load_dotenv()
-firebase_admin.initialize_app()
+initialize_app()
 db = firestore.Client()
+
+def connectToDB(path: str):
+    con = sqlite3.connect(path)
+    cur = con.cursor()
+    return con, cur
+
+def closeDB(con):
+    con.close()
 
 
 @app.route('/session', methods=['POST'])
@@ -199,6 +206,12 @@ def start(session_id: str):
 
     session_ref.update({u'restaurants': firestore.ArrayUnion(restaurants)})
 
+    for i in range(len(restaurants)):
+        con, cur = connectToDB('app.db')
+        cur.execute("INSERT INTO sessions(restaurant_id, likes, session) VALUES(?, ?, ?)", (i, 0, session_id))
+        con.commit()
+        closeDB(con)
+
     fcm_headers = {
         'Content-Type': 'application/json',
         'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
@@ -222,6 +235,27 @@ def start(session_id: str):
         )
 
     return {'restaurants': restaurants}, 200
+
+
+@app.route('/session/<session_id>/restaurant/<restaurant_id>', methods=['POST'])
+def restaurantSwipe(session_id: str, restaurant_id: str):
+    if 'like' not in request.form:
+        return {
+            'message': "Error! 'like' not found in request."
+        }, 400
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    like = request.form['like']
+    if like:
+        con, cur = connectToDB('app.db')
+        cur.execute("UPDATE sessions SET likes = likes + 1 WHERE restaurant_id = ? AND session = ?", (restaurant_id, session_id,))
+        con.commit()
+        closeDB(con)
+
+    return {'Message': f"Vote for id {restaurant_id} in session {session_id} made."}, 200
 
 
 if __name__ == "__main__":
