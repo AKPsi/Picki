@@ -17,7 +17,7 @@ const Color GREY = Color(0xff939090);
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
-  final String url = "http://172.20.10.5:5000/";
+  final String url = "http://172.20.10.10:5000/";
 
   Future<Map> get(String request, [Map queryParams = const {}]) async {
     return json.decode((await http.get(Uri.parse(request))).body);
@@ -56,8 +56,8 @@ class FirebaseListener {
       } else if (event.notification!.title! == "start") {
         // print("start");
         startController.sink.add(data);
-      } else if (event.notification!.title! == "finish") {
-        // print("finish");
+      } else if (event.notification!.title! == "done") {
+        print("finish");
         finishController.sink.add(data);
       }
     });
@@ -469,8 +469,6 @@ class _LobbyPageState extends State<LobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    // print("rebuilding...");
-    // print(names);
     return Scaffold(
         key: UniqueKey(),
         body: Container(
@@ -524,7 +522,6 @@ class _LobbyPageState extends State<LobbyPage> {
                     key: UniqueKey(),
                     itemCount: names.length,
                     itemBuilder: (context, index) {
-                      // print(index);
                       return Text(names[index]);
                     },
                   )),
@@ -550,7 +547,6 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
-      // print(event["name"]);
       setState(() {
         names = names + [event["name"]];
       });
@@ -559,20 +555,16 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Future<void> _listenForRestaurants(BuildContext context) async {
     firebaseListener.startStream.listen((event) async {
-      // print("got event");
       var response =
           await Client().get(Client().url + "session/$sessionId/restaurants");
-      // print(response);
 
       List<Restaurant> restaurants = [];
 
-      // print("restaurants ${response["restaurants"].length}");
       for (int i = 0; i < response["restaurants"].length; i++) {
         Restaurant restaurant =
             Restaurant.fromJson(response["restaurants"][i], i);
         restaurants.add(restaurant);
       }
-      // print("parsed restaurants");
 
       Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => RestaurantsListPage(restaurants: restaurants)));
@@ -623,9 +615,8 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
     double width = MediaQuery.of(context).size.width;
     double height = 540;
     Restaurant restaurant = widget.restaurants![restaurantIndex];
-    String photo =
-        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${restaurant.photos[pictureId].toString()}&key=$GOOGLE_MAPS_KEY";
-    print(photo);
+    String pictureUrl =
+        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${restaurant.photos[pictureId]}&key=$GOOGLE_MAPS_KEY";
     return Stack(
       children: [
         Container(
@@ -639,7 +630,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(20)),
                     image: DecorationImage(
-                        fit: BoxFit.fitHeight, image: NetworkImage(photo)),
+                        fit: BoxFit.fitHeight, image: NetworkImage(pictureUrl)),
                   ),
                   height: 420,
                   width: double.infinity),
@@ -766,8 +757,76 @@ class WaitingScreen extends StatefulWidget {
 class _WaitingScreenState extends State<WaitingScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(
+      body: Center(
+        child: Container(
+          child: Text("Waiting for other diners..."),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _listenToFirebase() async {
+    firebaseListener.finishStream.listen((event) async {
+      var response =
+          await Client().get("/session/$sessionId/restaurants/ranks");
+      var rankings = response["ranking"];
+
+      List<Restaurant> restaurants = [];
+      for (int i = 0; i < rankings.length; i++) {
+        restaurants.add(Restaurant.fromJson(rankings[i], i));
+      }
+      print("made restaurants list");
+
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => ResultsPage(restaurants: restaurants)));
+    });
   }
 }
+
+class ResultsPage extends StatefulWidget {
+  final List<Restaurant>? restaurants;
+  ResultsPage({Key? key, @required this.restaurants}) : super(key: key);
+
+  @override
+  _ResultsPageState createState() => _ResultsPageState();
+}
+
+class _ResultsPageState extends State<ResultsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Column(children: [
+      Container(child: Image.asset("assets/v5.png")),
+      Container(
+          child: ListView.builder(
+              itemCount: widget.restaurants!.length,
+              itemBuilder: (context, index) {
+                return _restaurantWidget(widget.restaurants![index]);
+              }))
+    ]));
+  }
+
+  Widget _restaurantWidget(Restaurant restaurant) {
+    return Container(
+        child: Column(
+      children: [
+        Container(
+            child: Text(restaurant.name,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+        Container(
+            child: Text(
+                "${restaurant.rating} (${restaurant.numRatings} reviews)",
+                style: TextStyle(fontSize: 14))),
+        Container(
+            child: Text(restaurant.distance, style: TextStyle(fontSize: 14))),
+        Container(
+            child: Text("${restaurant.priceLevel}",
+                style: TextStyle(fontSize: 14))),
+      ],
+    ));
+  }
+}
+
 
 // {"restaurants": [{"address": "135 S Chauncey Ave #2G, West Lafayette, IN 47906, USA", "distance": "0.5 mi", "num_ratings": "116", "price_level": "2", "name": "Hala's Grill", "rating": "4.7"}, {"address": "135 S Chauncey Ave # 2C, West Lafayette, IN 47906, USA", "distance": "0.5 mi", "num_ratings": "337", "price_level": "2", "name": "Basil Thai Restaurant", "rating": "4.1"}]}

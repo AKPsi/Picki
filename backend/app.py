@@ -279,6 +279,7 @@ def userFinish(session_id: str):
     num_users = len(doc_dict['names'])
 
     if doc_dict['finished'] == num_users:
+        print("All users finished")
         fcm_headers = {
             'Content-Type': 'application/json',
             'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
@@ -295,11 +296,13 @@ def userFinish(session_id: str):
                 }
             }
 
-            requests.post(
+            resp = requests.post(
                 url="https://fcm.googleapis.com/fcm/send",
                 headers=fcm_headers,
                 data=json.dumps(fcm_body)
             )
+            print(resp.status_code)
+            print(resp.json())
 
     return {'message': f"{doc_dict['finished']}/{num_users} users finished."}, 200
 
