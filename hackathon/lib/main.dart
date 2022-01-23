@@ -660,124 +660,140 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
   }
 
   Widget _restaurantWidget() {
+    String priceLevel = "\$" * widget.restaurants![restaurantIndex].priceLevel;
     double width = MediaQuery.of(context).size.width;
-    double height = 540;
+    double height = 560;
     Restaurant restaurant = widget.restaurants![restaurantIndex];
     String pictureUrl =
         "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${restaurant.photos[pictureId]}&key=$GOOGLE_MAPS_KEY";
-    return Stack(
-      children: [
-        Container(
-            child: Container(
-          height: height,
-          width: double.infinity,
-          child: Column(
-            children: [
-              Container(
-                  margin: EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(20)),
-                    image: DecorationImage(
-                        fit: BoxFit.fitHeight, image: NetworkImage(pictureUrl)),
-                  ),
-                  height: 420,
-                  width: double.infinity),
-              Container(
-                width: width - 40,
-                height: 95,
-                padding:
-                    EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
-                decoration: BoxDecoration(
-                    border: Border.all(
-                      color: GREY,
+    return Container(
+      padding: EdgeInsets.only(top: 20),
+      child: Stack(
+        children: [
+          Container(
+              child: Container(
+            height: height,
+            width: double.infinity,
+            child: Column(
+              children: [
+                Container(
+                    margin: EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                      image: DecorationImage(
+                          fit: BoxFit.fitHeight,
+                          image: NetworkImage(pictureUrl)),
                     ),
-                    borderRadius: BorderRadius.all(Radius.circular(20))),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(restaurant.name,
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text(
-                        "${restaurant.rating} (${restaurant.numRatings} reviews)",
-                        textAlign: TextAlign.start,
-                        style: TextStyle(fontSize: 14)),
-                    Text(restaurant.distance,
-                        textAlign: TextAlign.start,
-                        style: TextStyle(fontSize: 14)),
-                    Text("${restaurant.priceLevel}",
-                        style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-              )
-            ],
-          ),
-        )),
-        Row(children: [
-          GestureDetector(
-              child: Container(
-                  width: .5 * width - 20,
-                  height: height,
-                  color: Colors.red.withOpacity(0)),
-              onTap: () {
-                if (acceptTaps) {
-                  acceptTaps = false;
-                  pictureId = max(pictureId - 1, 0);
-                  setState(() {});
-                  acceptTaps = true;
-                }
-              }),
-          GestureDetector(
-              child: Container(
-                  width: .5 * width - 20,
-                  height: height,
-                  color: Colors.green.withOpacity(0)),
-              onTap: () {
-                if (acceptTaps) {
-                  acceptTaps = false;
-                  pictureId = min(pictureId + 1,
-                      widget.restaurants![restaurantIndex].photos.length - 1);
-                  setState(() {});
-                  acceptTaps = true;
-                }
-              })
-        ]),
-      ],
+                    height: 440,
+                    width: double.infinity),
+                Container(
+                  width: width - 40,
+                  height: 95,
+                  padding:
+                      EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: Offset(0, 4), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(restaurant.name,
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                          "${restaurant.rating} (${restaurant.numRatings} reviews)",
+                          textAlign: TextAlign.start,
+                          style: TextStyle(fontSize: 14)),
+                      Text(restaurant.distance,
+                          textAlign: TextAlign.start,
+                          style: TextStyle(fontSize: 14)),
+                      Text("$priceLevel", style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          )),
+          Row(children: [
+            GestureDetector(
+                child: Container(
+                    width: .5 * width - 20,
+                    height: height,
+                    color: Colors.red.withOpacity(0)),
+                onTap: () {
+                  if (acceptTaps) {
+                    acceptTaps = false;
+                    pictureId = max(pictureId - 1, 0);
+                    setState(() {});
+                    acceptTaps = true;
+                  }
+                }),
+            GestureDetector(
+                child: Container(
+                    width: .5 * width - 20,
+                    height: height,
+                    color: Colors.green.withOpacity(0)),
+                onTap: () {
+                  if (acceptTaps) {
+                    acceptTaps = false;
+                    pictureId = min(pictureId + 1,
+                        widget.restaurants![restaurantIndex].photos.length - 1);
+                    setState(() {});
+                    acceptTaps = true;
+                  }
+                })
+          ]),
+        ],
+      ),
     );
   }
 
   Widget _selectionWidget() {
     double width = MediaQuery.of(context).size.width;
-    double height = 120;
-    return Row(children: [
-      GestureDetector(
-          child: Container(
-              width: .5 * width - 20,
-              height: height,
-              color: Colors.blue.withOpacity(0)),
-          onTap: () {
-            if (acceptTaps) {
-              acceptTaps = false;
-              _sendDecisionToBackend(
-                  widget.restaurants![restaurantIndex], true);
-              acceptTaps = true;
-            }
-          }),
-      GestureDetector(
-          child: Container(
-              width: .5 * width - 20,
-              height: height,
-              color: Colors.yellow.withOpacity(0)),
-          onTap: () {
-            if (acceptTaps) {
-              acceptTaps = false;
-              _sendDecisionToBackend(
-                  widget.restaurants![restaurantIndex], true);
-              acceptTaps = true;
-            }
-          })
-    ]);
+    double height = 100;
+    return Container(
+      height: height,
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        GestureDetector(
+            child: Container(
+                height: height,
+                width: width / 2 - 20,
+                padding: EdgeInsets.only(left: 60, right: 60),
+                child: Container(child: Image.asset("assets/trash.png"))),
+            onTap: () {
+              if (acceptTaps) {
+                acceptTaps = false;
+                _sendDecisionToBackend(
+                    widget.restaurants![restaurantIndex], true);
+                acceptTaps = true;
+              }
+            }),
+        GestureDetector(
+            child: Container(
+                height: height,
+                width: width / 2 - 20,
+                padding: EdgeInsets.only(left: 60, right: 60),
+                child: Container(child: Image.asset("assets/utensils.png"))),
+            onTap: () {
+              if (acceptTaps) {
+                acceptTaps = false;
+                _sendDecisionToBackend(
+                    widget.restaurants![restaurantIndex], true);
+                acceptTaps = true;
+              }
+            })
+      ]),
+    );
   }
 
   Future<void> _sendDecisionToBackend(Restaurant restaurant, bool like) async {
