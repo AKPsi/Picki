@@ -22,6 +22,7 @@ Widget backButton = Container(
 );
 
 const Color RED = Color(0xffEA1B25);
+const Color LIGHTGREY = Color(0xfffafafa);
 const Color GREY = Color(0xffEFEFEF);
 const Color BLACK = Color(0xff3F3F3F);
 const Color DARKGREY = Color(0xff898888);
@@ -102,6 +103,7 @@ class Restaurant {
 
 late FirebaseListener firebaseListener;
 late String sessionId;
+late dynamic username;
 
 void main() {
   runApp(const MyApp());
@@ -270,6 +272,7 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
                 "name": _controller.text,
                 "device_id": await FirebaseMessaging.instance.getToken()
               });
+              username = _controller.text;
               sessionId = response["session_id"];
               // print(sessionId);
               Navigator.of(context).push(
@@ -366,6 +369,7 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
 
   Future<void> _submitData() async {
     final String name = _controllerName.text;
+    username = name;
     sessionId = _controllerSessionId.text;
     final Map data = await Client().post("session/$sessionId", {
       "name": name,
@@ -536,13 +540,14 @@ class LobbyPage extends StatefulWidget {
 class _LobbyPageState extends State<LobbyPage> {
   late List<dynamic> names;
 
+
   @override
   void initState() {
     super.initState();
     _listenForFriends();
     _listenForRestaurants(context);
-
-    names = widget.names;
+  
+    names = [username] + widget.names;
   }
 
   @override
@@ -609,13 +614,21 @@ class _LobbyPageState extends State<LobbyPage> {
                         ),
                       ],
                     ),
-                  child: ListView.builder(
-                    key: UniqueKey(),
-                    itemCount: names.length,
-                    itemBuilder: (context, index) {
-                      print(index);
-                      return _guestWidget(names[index]);
-                    },
+                  child: Column(
+                    children: [
+                      Row(children: [Container(padding: EdgeInsets.only(top: 15, left: 20), child: Text("Members", style: TextStyle(fontSize: 16)))],),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: EdgeInsets.only(top: 10),
+                          key: UniqueKey(),
+                          itemCount: names.length,
+                          itemBuilder: (context, index) {
+                            print(index);
+                            return _guestWidget(names[index]);
+                          },
+                        ),
+                      ),
+                    ],
                   )),
               if (widget.isHost!)
                 GestureDetector(
@@ -646,13 +659,27 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Widget _guestWidget(String name) {
     return Container(
-      width: double.infinity,
-      height: 20,
-      padding: EdgeInsets.only(left: 40),
-      child: Text(name,
-        textAlign: TextAlign.start,
-        style: TextStyle(color: BLACK, fontSize: 20, fontWeight: FontWeight.w500)
-    ));
+      padding: EdgeInsets.only(top: 5, bottom: 5, left: 20, right: 20),
+      child: Container(
+        width: double.infinity,
+        height: 40,
+        padding: EdgeInsets.only(left: 30),
+        decoration: BoxDecoration(
+          color: LIGHTGREY,
+          border: Border.all(color: LIGHTGREY),
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name,
+              textAlign: TextAlign.start,
+              style: TextStyle(color: BLACK, fontSize: 20, fontWeight: FontWeight.w600)
+      ),
+          ],
+        )),
+    );
   }
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
