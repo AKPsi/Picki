@@ -11,6 +11,9 @@ import 'package:geolocator/geolocator.dart';
 
 // fc0bb8
 
+const Color RED = Color(0xffEA1B25);
+const Color GREY = Color(0xff939090);
+
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
@@ -143,13 +146,15 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(),
-        Container(child: Container()),
+        Container(
+            child: Transform.translate(
+                offset: Offset(12, 0), child: Image.asset("assets/v5.png"))),
         Container(
           padding: EdgeInsets.only(bottom: 40),
           child:
               Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
             GestureDetector(
-                child: _lobbyButton("CREATE A LOBBY", Colors.red, Colors.white),
+                child: _lobbyButton("CREATE A LOBBY", RED, Colors.white),
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => EnterHostNamePage()))),
             GestureDetector(
@@ -171,10 +176,14 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
         width: 160,
         height: 60,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(8),
           color: mainColor,
+          border: Border.all(color: outlineColor, width: 1.0),
         ),
-        child: Center(child: Text(name, textAlign: TextAlign.center)));
+        child: Center(
+            child: Text(name,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: outlineColor))));
   }
 }
 
@@ -191,29 +200,52 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      TextField(
-        controller: _controller,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          hintText: 'Enter a search term',
-        ),
-      ),
-      GestureDetector(
-          child: Center(
-            child: Text("Enter"),
+        body: Container(
+      padding: EdgeInsets.only(left: 20, right: 20),
+      child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+        Container(
+            padding: EdgeInsets.only(top: 60, bottom: 20),
+            child: Row(
+              children: [
+                Text("Create a Lobby", style: TextStyle(fontSize: 30)),
+              ],
+            )),
+        Container(
+          height: 50,
+          child: TextField(
+            controller: _controller,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              hintText: 'Your Name',
+            ),
           ),
-          onTap: () async {
-            var response = await Client().post("session", {
-              "name": _controller.text,
-              "device_id": await FirebaseMessaging.instance.getToken()
-            });
-            sessionId = response["session_id"];
-            print(sessionId);
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterAddressPage()));
-          })
-    ]));
+        ),
+        GestureDetector(
+            child: Container(
+                margin: EdgeInsets.only(top: 10),
+                height: 50,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: RED,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Center(
+                  child: Text("Enter"),
+                )),
+            onTap: () async {
+              var response = await Client().post("session", {
+                "name": _controller.text,
+                "device_id": await FirebaseMessaging.instance.getToken()
+              });
+              sessionId = response["session_id"];
+              print(sessionId);
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => EnterAddressPage()));
+            })
+      ]),
+    ));
   }
 }
 
@@ -231,29 +263,59 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextField(
-            controller: _controllerName,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Name',
-            )),
-        TextField(
-            controller: _controllerSessionId,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Session ID',
-            )),
-        GestureDetector(
-            child: Container(
-                width: double.infinity,
-                height: 50,
-                child: const Center(child: Text("Enter"))),
-            onTap: () => _submitData())
-      ],
-    ));
+        body: Container(
+            padding: EdgeInsets.only(left: 20, right: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Container(
+                    padding: EdgeInsets.only(top: 60, bottom: 20),
+                    child: Row(
+                      children: [
+                        Text("Create a Lobby", style: TextStyle(fontSize: 30)),
+                      ],
+                    )),
+                Container(
+                  margin: EdgeInsets.only(top: 10),
+                  height: 50,
+                  child: TextField(
+                    controller: _controllerName,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      hintText: 'Your Name',
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 10),
+                  height: 50,
+                  child: TextField(
+                    controller: _controllerSessionId,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      hintText: 'Lobby Code',
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                    child: Container(
+                        margin: EdgeInsets.only(top: 10),
+                        height: 50,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: RED,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Center(
+                          child: Text("Enter"),
+                        )),
+                    onTap: () => _submitData())
+              ],
+            )));
   }
 
   Future<void> _submitData() async {
@@ -284,29 +346,42 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-      padding: const EdgeInsets.only(top: 40),
+      padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
       child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(width: double.infinity),
-            TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter a search term',
-                ),
-                onChanged: (String value) => _fetchSuggestions(value, context)),
+            Container(
+              margin: EdgeInsets.only(top: 10),
+              height: 50,
+              child: TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    hintText: 'Your Name',
+                  ),
+                  onChanged: (String value) =>
+                      _fetchSuggestions(value, context)),
+            ),
             GestureDetector(
-                child: Center(
-                    child: Container(
-                  width: double.infinity,
-                  height: 50,
-                  child: Center(child: Text("Use Current Location")),
-                )),
+                child: Container(
+                    margin: EdgeInsets.only(top: 10),
+                    height: 50,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: RED, width: 2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Center(
+                      child: Text("Use Current Location"),
+                    )),
                 onTap: () => _useCurrentLocation()),
             Expanded(
               child: ListView.builder(
+                padding: EdgeInsets.only(top: 20),
                 itemCount: locationWidgets.length,
                 itemBuilder: (BuildContext context, int index) {
                   return locationWidgets[index];
@@ -354,7 +429,12 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
   Widget _locationWidget(Map location, BuildContext context) {
     return GestureDetector(
         child: Container(
-          height: 60,
+          margin: EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: GREY, width: 1),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          height: 40,
           width: double.infinity,
           padding: const EdgeInsets.all(10),
           child: Center(child: Text("${location["description"]}")),
@@ -392,23 +472,70 @@ class _LobbyPageState extends State<LobbyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-      padding: const EdgeInsets.all(60),
+      padding: EdgeInsets.only(left: 20, right: 20, bottom: 40),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
-            width: double.infinity,
-          ),
-          Expanded(
+              padding: EdgeInsets.only(top: 60, bottom: 20),
+              child: Row(
+                children: [
+                  Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
+                      style: TextStyle(fontSize: 30)),
+                ],
+              )),
+          Container(
+              padding: EdgeInsets.only(left: 10),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: RED,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              height: 65,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("LOBBY CODE",
+                          textAlign: TextAlign.start,
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                      Text(sessionId,
+                          textAlign: TextAlign.start,
+                          style: TextStyle(fontSize: 20, color: Colors.black))
+                    ],
+                  ),
+                ],
+              )),
+          Container(
+              width: double.infinity,
+              margin: EdgeInsets.only(top: 30),
+              height: 500,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: GREY)),
               child: ListView.builder(
-            itemCount: widget.names.length,
-            itemBuilder: (context, snapshot) {
-              return Text(widget.names[snapshot]);
-            },
-          )),
+                itemCount: widget.names.length,
+                itemBuilder: (context, snapshot) {
+                  return Text(widget.names[snapshot]);
+                },
+              )),
           if (widget.isHost!)
             GestureDetector(
-                child: Text("Continue"),
+                child: Container(
+                    margin: EdgeInsets.only(top: 10),
+                    height: 50,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: RED,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child:
+                          Text("Enter", style: TextStyle(color: Colors.white)),
+                    )),
                 onTap: () => Client().post("session/$sessionId/start", {})),
         ],
       ),
@@ -426,8 +553,7 @@ class _LobbyPageState extends State<LobbyPage> {
     firebaseListener.startStream.listen((event) {
       List<Restaurant> restaurants = [];
       // List<Map> restaurantMaps = event["restaruants"];
-      print(event);
-      print(event["restaurants"]);
+
       for (int i = 0; i < event["restaurants"].length; i++) {
         Restaurant restaurant = Restaurant.fromJson(event["restaurants"][i], i);
         restaurants.add(restaurant);
@@ -460,108 +586,146 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    print(pictureId);
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
-
     return Scaffold(
       body: Stack(
         children: [
           Container(
-              padding: const EdgeInsets.all(60),
-              child: _restaurantWidget(widget.restaurants![restaurantIndex])),
-          Column(children: [
-            Row(children: [
-              GestureDetector(
-                  child: Container(
-                      width: .5 * width,
-                      height: .5 * height,
-                      color: Colors.red.withOpacity(.3)),
-                  onTap: () {
-                    if (acceptTaps) {
-                      acceptTaps = false;
-                      pictureId = max(pictureId - 1, 0);
-
-                      setState(() {});
-                      acceptTaps = true;
-                    }
-                  }),
-              GestureDetector(
-                  child: Container(
-                      width: .5 * width,
-                      height: .5 * height,
-                      color: Colors.green.withOpacity(.3)),
-                  onTap: () {
-                    if (acceptTaps) {
-                      acceptTaps = false;
-                      pictureId = min(
-                          pictureId + 1,
-                          widget.restaurants![restaurantIndex].pictures.length -
-                              1);
-                      setState(() {});
-                      acceptTaps = true;
-                    }
-                  })
-            ]),
-            Row(
+            padding: EdgeInsets.only(top: 60, left: 20, right: 20),
+            child: Column(
               children: [
-                GestureDetector(
-                    child: Container(
-                        width: .5 * width,
-                        height: .5 * height,
-                        color: Colors.blue.withOpacity(.3)),
-                    onTap: () {
-                      if (acceptTaps) {
-                        acceptTaps = false;
-                        _sendDecisionToBackend(
-                            widget.restaurants![restaurantIndex], true);
-                        acceptTaps = true;
-                      }
-                    }),
-                GestureDetector(
-                    child: Container(
-                        width: .5 * width,
-                        height: .5 * height,
-                        color: Colors.yellow.withOpacity(.3)),
-                    onTap: () {
-                      if (acceptTaps) {
-                        acceptTaps = false;
-                        _sendDecisionToBackend(
-                            widget.restaurants![restaurantIndex], true);
-                        acceptTaps = true;
-                      }
-                    })
+                Container(child: Image.asset("assets/v5.png")),
+                _restaurantWidget(),
+                _selectionWidget(),
               ],
-            )
-          ])
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _restaurantWidget(Restaurant restaurant) {
-    return Column(
+  Widget _restaurantWidget() {
+    double width = MediaQuery.of(context).size.width;
+    double height = 540;
+    Restaurant restaurant = widget.restaurants![restaurantIndex];
+    return Stack(
       children: [
         Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                  fit: BoxFit.fitHeight,
-                  image: NetworkImage(restaurant.pictures[pictureId])),
-            ),
-            height: 360,
-            width: 240),
-        Column(
-          children: [
-            Text(restaurant.name),
-            Text(restaurant.address),
-            Text(restaurant.distance),
-            Text("${restaurant.numRatings}"),
-            Text("${restaurant.priceLevel}"),
-            Text("${restaurant.rating}")
-          ],
-        )
+            child: Container(
+          height: height,
+          width: double.infinity,
+          child: Column(
+            children: [
+              Container(
+                  margin: EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                    image: DecorationImage(
+                        fit: BoxFit.fitHeight,
+                        image: NetworkImage(restaurant.pictures[pictureId])),
+                  ),
+                  height: 420,
+                  width: double.infinity),
+              Container(
+                width: width - 40,
+                height: 95,
+                padding:
+                    EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
+                decoration: BoxDecoration(
+                    border: Border.all(
+                      color: GREY,
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(20))),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(restaurant.name,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                        "${restaurant.rating} (${restaurant.numRatings} reviews)",
+                        textAlign: TextAlign.start,
+                        style: TextStyle(fontSize: 14)),
+                    Text(restaurant.distance,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(fontSize: 14)),
+                    Text("${restaurant.priceLevel}",
+                        style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              )
+            ],
+          ),
+        )),
+        Row(children: [
+          GestureDetector(
+              child: Container(
+                width: .5 * width - 20,
+                height: height,
+                // color: Colors.red.withOpacity(.3)
+              ),
+              onTap: () {
+                if (acceptTaps) {
+                  acceptTaps = false;
+                  pictureId = max(pictureId - 1, 0);
+                  setState(() {});
+                  acceptTaps = true;
+                }
+              }),
+          GestureDetector(
+              child: Container(
+                width: .5 * width - 20,
+                height: height,
+                // color: Colors.green.withOpacity(.3)
+              ),
+              onTap: () {
+                if (acceptTaps) {
+                  acceptTaps = false;
+                  pictureId = min(pictureId + 1,
+                      widget.restaurants![restaurantIndex].pictures.length - 1);
+                  setState(() {});
+                  acceptTaps = true;
+                }
+              })
+        ]),
       ],
     );
+  }
+
+  Widget _selectionWidget() {
+    double width = MediaQuery.of(context).size.width;
+    double height = 120;
+    return Row(children: [
+      GestureDetector(
+          child: Container(
+            width: .5 * width - 20,
+            height: height,
+            // color: Colors.blue.withOpacity(.3)
+          ),
+          onTap: () {
+            if (acceptTaps) {
+              acceptTaps = false;
+              _sendDecisionToBackend(
+                  widget.restaurants![restaurantIndex], true);
+              acceptTaps = true;
+            }
+          }),
+      GestureDetector(
+          child: Container(
+            width: .5 * width - 20,
+            height: height,
+            // color: Colors.yellow.withOpacity(.3)
+          ),
+          onTap: () {
+            if (acceptTaps) {
+              acceptTaps = false;
+              _sendDecisionToBackend(
+                  widget.restaurants![restaurantIndex], true);
+              acceptTaps = true;
+            }
+          })
+    ]);
   }
 
   Future<void> _sendDecisionToBackend(Restaurant restaurant, bool like) async {
