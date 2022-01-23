@@ -87,7 +87,7 @@ def address(session_id: str):
         location = response['candidates'][0]['geometry']['location']
         lat, lng = location['lat'], location['lng']
     elif 'latitude' and 'longitude' in request.form:
-        lat, lng = request.form['latitude'], request.form['longitude']
+        lat, lng = float(request.form['latitude']), float(request.form['longitude'])
     else:
         return {
             'message': "Error! neither address, latitutde, nor longitude found in request."

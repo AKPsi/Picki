@@ -11,6 +11,16 @@ import 'package:geolocator/geolocator.dart';
 
 // fc0bb8
 
+Widget backButton = Container(
+  margin: EdgeInsets.only(right: 8),
+  child: Image.asset(
+    "assets/back.PNG",
+    height: 40,
+    width: 30,
+    scale: 1.6,
+  ),
+);
+
 const Color RED = Color(0xffEA1B25);
 const Color GREY = Color(0xff939090);
 
@@ -202,6 +212,10 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
             padding: EdgeInsets.only(top: 60, bottom: 20),
             child: Row(
               children: [
+                GestureDetector(
+                  child: backButton,
+                  onTap: () => Navigator.pop(context),
+                ),
                 Text("Create a Lobby", style: TextStyle(fontSize: 30)),
               ],
             )),
@@ -267,6 +281,10 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                     padding: EdgeInsets.only(top: 60, bottom: 20),
                     child: Row(
                       children: [
+                        GestureDetector(
+                          child: backButton,
+                          onTap: () => Navigator.pop(context),
+                        ),
                         Text("Create a Lobby", style: TextStyle(fontSize: 30)),
                       ],
                     )),
@@ -341,7 +359,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Container(
-      padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
+      padding: const EdgeInsets.only(top: 80, left: 20, right: 20),
       child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -350,16 +368,33 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
             Container(
               margin: EdgeInsets.only(top: 10),
               height: 50,
-              child: TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    hintText: 'Your Name',
-                  ),
-                  onChanged: (String value) =>
-                      _fetchSuggestions(value, context)),
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  TextField(
+                      controller: _controller,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        hintText: 'Enter your location',
+                        contentPadding: const EdgeInsets.only(left: 35),
+                      ),
+                      onChanged: (String value) =>
+                          _fetchSuggestions(value, context)),
+                  GestureDetector(
+                      child: Container(
+                        margin: EdgeInsets.only(right: 8),
+                        child: Image.asset(
+                          "assets/back.PNG",
+                          height: 40,
+                          width: 30,
+                          scale: 1.8,
+                        ),
+                      ),
+                      onTap: () => Navigator.pop(context)),
+                ],
+              ),
             ),
             GestureDetector(
                 child: Container(
@@ -418,29 +453,39 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
 
     Position _currentPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
-    // await Client().post()
+    await Client().post("session/$sessionId/address", {
+      "latitude": _currentPosition.latitude.toString(),
+      "longitude": _currentPosition.longitude.toString(),
+    });
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => LobbyPage(isHost: true)));
   }
 
   Widget _locationWidget(Map location, BuildContext context) {
-    return GestureDetector(
-        child: Container(
-          margin: EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            border: Border.all(color: GREY, width: 1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          height: 40,
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          child: Center(child: Text("${location["description"]}")),
-        ),
-        onTap: () async {
-          var response = await Client().post("/session/$sessionId/address", {
-            "address": location["description"],
-          });
-          Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => LobbyPage(isHost: true)));
-        });
+    return Container(
+      padding: EdgeInsets.only(left: 20, right: 20),
+      child: GestureDetector(
+          child: Container(
+              decoration: BoxDecoration(
+                border: Border.symmetric(
+                    horizontal:
+                        BorderSide(color: Colors.grey[400]!, width: .5)),
+                // borderRadius: BorderRadius.circular(15),
+              ),
+              height: 50,
+              child: Row(
+                children: [
+                  Text("${location["description"]}", textAlign: TextAlign.left),
+                ],
+              )),
+          onTap: () async {
+            var response = await Client().post("/session/$sessionId/address", {
+              "address": location["description"],
+            });
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => LobbyPage(isHost: true)));
+          }),
+    );
   }
 }
 
@@ -480,6 +525,9 @@ class _LobbyPageState extends State<LobbyPage> {
                   padding: EdgeInsets.only(top: 60, bottom: 20),
                   child: Row(
                     children: [
+                      GestureDetector(
+                          child: backButton,
+                          onTap: () => Navigator.pop(context)),
                       Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
                           style: TextStyle(fontSize: 30)),
                     ],
