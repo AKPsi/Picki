@@ -17,7 +17,7 @@ const Color GREY = Color(0xff939090);
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
-  final String url = "http://172.20.10.10:5000/";
+  final String url = "http://172.20.10.5:5000/";
 
   Future<Map> get(String request, [Map queryParams = const {}]) async {
     return json.decode((await http.get(Uri.parse(request))).body);
@@ -25,7 +25,7 @@ class Client {
 
   Future<Map> post(String path, Map body) async {
     final response = (await http.post(Uri.parse(url + path), body: body)).body;
-    print(response);
+    // print(response);
     return json.decode(response);
   }
 }
@@ -49,12 +49,12 @@ class FirebaseListener {
     FirebaseMessaging.onMessage.listen((RemoteMessage event) {
       Map data = json.decode(event.notification!.body!.toString());
       print(data);
-      // print(event.notification!.title!);
-      if (event.notification!.title! == "join") {
+      print(event.notification!.title!);
+      if (event.notification!.title! == "user_join") {
         // print("join");
         joinController.sink.add(data);
       } else if (event.notification!.title! == "start") {
-        // print("start");
+        print("start");
         startController.sink.add(data);
       } else if (event.notification!.title! == "finish") {
         // print("finish");
@@ -70,17 +70,17 @@ class Restaurant {
   late int numRatings;
   late int priceLevel;
   late String name;
-  late double rating;
+  late var rating;
   late int id;
   late List<String> pictures;
 
   Restaurant.fromJson(Map json, int id) {
     this.address = json["address"];
     this.distance = json["distance"];
-    this.numRatings = int.parse(json["num_ratings"]);
-    this.priceLevel = int.parse(json["price_level"]);
+    this.numRatings = json["num_ratings"];
+    this.priceLevel = json["price_level"];
     this.name = json["name"];
-    this.rating = double.parse(json["rating"]);
+    this.rating = json["rating"];
     this.id = id;
 
     this.pictures = [
@@ -461,103 +461,123 @@ class LobbyPage extends StatefulWidget {
 }
 
 class _LobbyPageState extends State<LobbyPage> {
+  late List<dynamic> names;
+
   @override
   void initState() {
     super.initState();
     _listenForFriends();
     _listenForRestaurants(context);
+
+    names = widget.names;
   }
 
   @override
   Widget build(BuildContext context) {
+    print("rebuilding...");
+    print(names);
     return Scaffold(
+        key: UniqueKey(),
         body: Container(
-      padding: EdgeInsets.only(left: 20, right: 20, bottom: 40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Container(
-              padding: EdgeInsets.only(top: 60, bottom: 20),
-              child: Row(
-                children: [
-                  Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
-                      style: TextStyle(fontSize: 30)),
-                ],
-              )),
-          Container(
-              padding: EdgeInsets.only(left: 10),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: RED,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 65,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.only(left: 20, right: 20, bottom: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                  padding: EdgeInsets.only(top: 60, bottom: 20),
+                  child: Row(
                     children: [
-                      Text("LOBBY CODE",
-                          textAlign: TextAlign.start,
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
-                      Text(sessionId,
-                          textAlign: TextAlign.start,
-                          style: TextStyle(fontSize: 20, color: Colors.black))
+                      Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
+                          style: TextStyle(fontSize: 30)),
                     ],
+                  )),
+              Container(
+                  padding: EdgeInsets.only(left: 10),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: RED,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ],
-              )),
-          Container(
-              width: double.infinity,
-              margin: EdgeInsets.only(top: 30),
-              height: 500,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: GREY)),
-              child: ListView.builder(
-                itemCount: widget.names.length,
-                itemBuilder: (context, snapshot) {
-                  return Text(widget.names[snapshot]);
-                },
-              )),
-          if (widget.isHost!)
-            GestureDetector(
-                child: Container(
-                    margin: EdgeInsets.only(top: 10),
-                    height: 50,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: RED,
+                  height: 65,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("LOBBY CODE",
+                              textAlign: TextAlign.start,
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white)),
+                          Text(sessionId,
+                              textAlign: TextAlign.start,
+                              style:
+                                  TextStyle(fontSize: 20, color: Colors.black))
+                        ],
+                      ),
+                    ],
+                  )),
+              Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.only(top: 30),
+                  height: 500,
+                  decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Center(
-                      child:
-                          Text("Enter", style: TextStyle(color: Colors.white)),
-                    )),
-                onTap: () => Client().post("session/$sessionId/start", {})),
-        ],
-      ),
-    ));
+                      border: Border.all(color: GREY)),
+                  child: ListView.builder(
+                    key: UniqueKey(),
+                    itemCount: names.length,
+                    itemBuilder: (context, index) {
+                      print(index);
+                      return Text(names[index]);
+                    },
+                  )),
+              if (widget.isHost!)
+                GestureDetector(
+                    child: Container(
+                        margin: EdgeInsets.only(top: 10),
+                        height: 50,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: RED,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Center(
+                          child: Text("Enter",
+                              style: TextStyle(color: Colors.white)),
+                        )),
+                    onTap: () => Client().post("session/$sessionId/start", {})),
+            ],
+          ),
+        ));
   }
 
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
-      widget.names.add(event["name"]);
-      setState(() {});
+      print(event["name"]);
+      setState(() {
+        names = names + [event["name"]];
+      });
     });
   }
 
   Future<void> _listenForRestaurants(BuildContext context) async {
-    firebaseListener.startStream.listen((event) {
-      List<Restaurant> restaurants = [];
-      // List<Map> restaurantMaps = event["restaruants"];
+    firebaseListener.startStream.listen((event) async {
+      print("got event");
+      var response =
+          await Client().get(Client().url + "session/$sessionId/restaurants");
+      print(response);
 
-      for (int i = 0; i < event["restaurants"].length; i++) {
-        Restaurant restaurant = Restaurant.fromJson(event["restaurants"][i], i);
+      List<Restaurant> restaurants = [];
+
+      print("restaurants ${response["restaurants"].length}");
+      for (int i = 0; i < response["restaurants"].length; i++) {
+        Restaurant restaurant =
+            Restaurant.fromJson(response["restaurants"][i], i);
         restaurants.add(restaurant);
       }
+      print("parsed restaurants");
 
       Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => RestaurantsListPage(restaurants: restaurants)));
@@ -661,10 +681,9 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
         Row(children: [
           GestureDetector(
               child: Container(
-                width: .5 * width - 20,
-                height: height,
-                // color: Colors.red.withOpacity(.3)
-              ),
+                  width: .5 * width - 20,
+                  height: height,
+                  color: Colors.red.withOpacity(0)),
               onTap: () {
                 if (acceptTaps) {
                   acceptTaps = false;
@@ -675,10 +694,9 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
               }),
           GestureDetector(
               child: Container(
-                width: .5 * width - 20,
-                height: height,
-                // color: Colors.green.withOpacity(.3)
-              ),
+                  width: .5 * width - 20,
+                  height: height,
+                  color: Colors.green.withOpacity(0)),
               onTap: () {
                 if (acceptTaps) {
                   acceptTaps = false;
@@ -699,10 +717,9 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
     return Row(children: [
       GestureDetector(
           child: Container(
-            width: .5 * width - 20,
-            height: height,
-            // color: Colors.blue.withOpacity(.3)
-          ),
+              width: .5 * width - 20,
+              height: height,
+              color: Colors.blue.withOpacity(0)),
           onTap: () {
             if (acceptTaps) {
               acceptTaps = false;
@@ -713,10 +730,9 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
           }),
       GestureDetector(
           child: Container(
-            width: .5 * width - 20,
-            height: height,
-            // color: Colors.yellow.withOpacity(.3)
-          ),
+              width: .5 * width - 20,
+              height: height,
+              color: Colors.yellow.withOpacity(0)),
           onTap: () {
             if (acceptTaps) {
               acceptTaps = false;
@@ -729,16 +745,31 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
   }
 
   Future<void> _sendDecisionToBackend(Restaurant restaurant, bool like) async {
-    await Client().post("session/$sessionId/restaurant/${restaurant.id}",
+    await Client().post("session/$sessionId/restaurants/${restaurant.id}",
         {"like": like.toString()});
     pictureId = 0;
     restaurantIndex++;
     if (restaurantIndex == widget.restaurants!.length) {
       await Client().post("session/$sessionId/finish", {"name": "name"});
-      print("Done");
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (context) => EnterHostNamePage()));
     } else {
       setState(() {});
     }
+  }
+}
+
+class WaitingScreen extends StatefulWidget {
+  WaitingScreen({Key? key}) : super(key: key);
+
+  @override
+  _WaitingScreenState createState() => _WaitingScreenState();
+}
+
+class _WaitingScreenState extends State<WaitingScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold();
   }
 }
 
