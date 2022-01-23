@@ -288,13 +288,7 @@ def userFinish(session_id: str):
     session_ref.update({'finished': firestore.Increment(1)})
 
     doc_dict = session_ref.get().to_dict()
-    restaurants = doc_dict['restaurants']
     num_users = len(doc_dict['names'])
-
-    con, cur = connectToDB('app.db')
-    cur.execute("SELECT restaurant_id FROM sessions WHERE session = ? ORDER BY likes DESC", (session_id,))
-    ranking = [rank[0] for rank in cur.fetchall()]
-    closeDB(con)
 
     if doc_dict['finished'] == num_users:
         fcm_headers = {
@@ -308,7 +302,7 @@ def userFinish(session_id: str):
                 'notification': {
                     'title': 'done',
                     'body': {
-                        'ranking': [restaurants[rank] for rank in ranking]
+                        'message': 'Voting finished.'
                     }
                 }
             }
@@ -319,7 +313,27 @@ def userFinish(session_id: str):
                 data=json.dumps(fcm_body)
             )
 
-    return {'message': f"{doc_dict['finished']} out of {num_users} users finished."}, 200
+    return {'message': f"{doc_dict['finished']}/{num_users} users finished."}, 200
+
+
+@app.route('/session/<session_id>/restaurants/ranks', methods=['GET'])
+def ranks(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    doc_dict = session_ref.get().to_dict()
+
+    con, cur = connectToDB('app.db')
+    cur.execute("SELECT restaurant_id FROM sessions WHERE session = ? ORDER BY likes DESC", (session_id,))
+    ranking = [rank[0] for rank in cur.fetchall()]
+    closeDB(con)
+
+    restaurants = doc_dict['restaurants']
+
+    return {'ranking': [restaurants[rank] for rank in ranking]}, 200
 
 
 if __name__ == "__main__":
