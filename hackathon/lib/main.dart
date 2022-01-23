@@ -12,12 +12,14 @@ import 'package:geolocator/geolocator.dart';
 // fc0bb8
 
 const Color RED = Color(0xffEA1B25);
-const Color GREY = Color(0xff939090);
+const Color GREY = Color(0xffEFEFEF);
+const Color BLACK = Color(0xff3F3F3F);
+const Color DARKGREY = Color(0xff898888);
 
 const String GOOGLE_MAPS_KEY = "AIzaSyDpSH_gylG1i9lfwE18UUULHMjTyUjeddk";
 
 class Client {
-  final String url = "http://172.20.10.5:5000/";
+  final String url = "http://172.20.10.10:5000/";
 
   Future<Map> get(String request, [Map queryParams = const {}]) async {
     return json.decode((await http.get(Uri.parse(request))).body);
@@ -148,20 +150,21 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
         Container(),
         Container(
             child: Transform.translate(
-                offset: Offset(12, 0), child: Image.asset("assets/v5.png"))),
+                offset: Offset(23, 0), child: Image.asset("assets/logo_v5_2.png", scale: 1,))),
         Container(
-          padding: EdgeInsets.only(bottom: 40),
+          padding: EdgeInsets.only(bottom: 70),
           child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-            GestureDetector(
-                child: _lobbyButton("CREATE A LOBBY", RED, Colors.white),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => EnterHostNamePage()))),
-            GestureDetector(
-                child: _lobbyButton("JOIN A LOBBY", Colors.white, Colors.black),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => EnterGuestNamePage()))),
-          ]),
+            Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              GestureDetector(
+                  child: _lobbyButton("CREATE A LOBBY", RED, Colors.white),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => EnterHostNamePage()))),
+              GestureDetector(
+                  child: _lobbyButton("JOIN A LOBBY", Colors.white, Colors.black),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => EnterGuestNamePage()))),
+            ]
+          ),
         )
       ],
     ));
@@ -173,17 +176,26 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
 
   Widget _lobbyButton(String name, Color mainColor, Color outlineColor) {
     return Container(
-        width: 160,
+        width: 260,
         height: 60,
+        margin: EdgeInsets.only(bottom: 15),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(15),
           color: mainColor,
-          border: Border.all(color: outlineColor, width: 1.0),
+          //border: Border.all(color: outlineColor, width: 1.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.75),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: Offset(0, 2), // changes position of shadow
+            ),
+          ],
         ),
         child: Center(
             child: Text(name,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: outlineColor))));
+                style: TextStyle(color: outlineColor, fontWeight: FontWeight.bold))));
   }
 }
 
@@ -207,16 +219,18 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
             padding: EdgeInsets.only(top: 60, bottom: 20),
             child: Row(
               children: [
-                Text("Create a Lobby", style: TextStyle(fontSize: 30)),
+                Text("Create a Lobby", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
               ],
             )),
         Container(
+          margin: EdgeInsets.only(top: 10),
           height: 50,
           child: TextField(
             controller: _controller,
             decoration: InputDecoration(
+              contentPadding: EdgeInsets.fromLTRB(15, 10, 10, 10),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
               ),
               hintText: 'Your Name',
             ),
@@ -229,10 +243,18 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: RED,
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.75),
+                      spreadRadius: 1,
+                      blurRadius: 2,
+                      offset: Offset(0, 2), // changes position of shadow
+                    ),
+                  ],
                 ),
                 child: Center(
-                  child: Text("Enter"),
+                  child: Text("Create", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
                 )),
             onTap: () async {
               var response = await Client().post("session", {
@@ -272,17 +294,19 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                     padding: EdgeInsets.only(top: 60, bottom: 20),
                     child: Row(
                       children: [
-                        Text("Create a Lobby", style: TextStyle(fontSize: 30)),
+                        Text("Join a Lobby", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
                       ],
-                    )),
+                    )
+                ),
                 Container(
                   margin: EdgeInsets.only(top: 10),
                   height: 50,
                   child: TextField(
                     controller: _controllerName,
                     decoration: InputDecoration(
+                    contentPadding: EdgeInsets.fromLTRB(15, 10, 10, 10),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       hintText: 'Your Name',
                     ),
@@ -294,8 +318,9 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                   child: TextField(
                     controller: _controllerSessionId,
                     decoration: InputDecoration(
+                      contentPadding: EdgeInsets.fromLTRB(15, 10, 10, 10),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       hintText: 'Lobby Code',
                     ),
@@ -308,10 +333,18 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: RED,
-                          borderRadius: BorderRadius.circular(5),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.75),
+                              spreadRadius: 1,
+                              blurRadius: 2,
+                              offset: Offset(0, 2), // changes position of shadow
+                            ),
+                          ],
                         ),
                         child: Center(
-                          child: Text("Enter"),
+                          child: Text("Join", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
                         )),
                     onTap: () => _submitData())
               ],
@@ -345,7 +378,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
+      body: Container(
       padding: const EdgeInsets.only(top: 40, left: 20, right: 20),
       child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -353,7 +386,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
           children: [
             Container(width: double.infinity),
             Container(
-              margin: EdgeInsets.only(top: 10),
+              margin: EdgeInsets.only(top: 30),
               height: 50,
               child: TextField(
                   controller: _controller,
@@ -479,7 +512,7 @@ class _LobbyPageState extends State<LobbyPage> {
     return Scaffold(
         key: UniqueKey(),
         body: Container(
-          padding: EdgeInsets.only(left: 20, right: 20, bottom: 40),
+          padding: EdgeInsets.only(left: 35, right: 35, bottom: 40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -488,71 +521,98 @@ class _LobbyPageState extends State<LobbyPage> {
                   child: Row(
                     children: [
                       Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
-                          style: TextStyle(fontSize: 30)),
+                          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
                     ],
                   )),
               Container(
                   padding: EdgeInsets.only(left: 10),
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: RED,
+                    color: GREY,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   height: 65,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text("LOBBY CODE",
-                              textAlign: TextAlign.start,
+                              textAlign: TextAlign.center,
                               style:
-                                  TextStyle(fontSize: 16, color: Colors.white)),
+                                  TextStyle(fontSize: 16, color: BLACK, fontWeight: FontWeight.bold)),
                           Text(sessionId,
-                              textAlign: TextAlign.start,
+                              textAlign: TextAlign.center,
                               style:
-                                  TextStyle(fontSize: 20, color: Colors.black))
+                                  TextStyle(fontSize: 20, color: DARKGREY))
                         ],
                       ),
                     ],
                   )),
               Container(
                   width: double.infinity,
-                  margin: EdgeInsets.only(top: 30),
+                  margin: EdgeInsets.fromLTRB(0, 30, 0, 30),
                   height: 500,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: GREY)),
+                      border: Border.all(color: GREY),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.75),
+                          spreadRadius: 1,
+                          blurRadius: 2,
+                          offset: Offset(0, 2), // changes position of shadow
+                        ),
+                      ],
+                    ),
                   child: ListView.builder(
                     key: UniqueKey(),
                     itemCount: names.length,
                     itemBuilder: (context, index) {
                       print(index);
-                      return Text(names[index]);
+                      return _guestWidget(names[index]);
                     },
                   )),
               if (widget.isHost!)
                 GestureDetector(
-                    child: Container(
-                        margin: EdgeInsets.only(top: 10),
-                        height: 50,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: RED,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Center(
-                          child: Text("Enter",
-                              style: TextStyle(color: Colors.white)),
-                        )),
+                     child: Container(
+                      margin: EdgeInsets.only(top: 10),
+                      height: 50,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: RED,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.75),
+                            spreadRadius: 1,
+                            blurRadius: 2,
+                            offset: Offset(0, 2), // changes position of shadow
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text("Start", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
+                    )),
                     onTap: () => Client().post("session/$sessionId/start", {})),
             ],
           ),
         ));
   }
 
+  Widget _guestWidget(String name) {
+    return Container(
+      width: double.infinity,
+      height: 20,
+      padding: EdgeInsets.only(left: 40),
+      child: Text(name,
+        textAlign: TextAlign.start,
+        style: TextStyle(color: BLACK, fontSize: 20, fontWeight: FontWeight.w500)
+    ));
+  }
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
       print(event["name"]);
