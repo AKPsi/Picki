@@ -8,6 +8,10 @@ from flask import Flask, request
 from firebase_admin import firestore, initialize_app
 
 
+NUM_PICS = 3
+NUM_RESTAURANTS = 6
+
+
 app = Flask(__name__)
 load_dotenv()
 initialize_app()
@@ -168,7 +172,7 @@ def start(session_id: str):
     restaurants = []
     added_set = set()
     i = -1
-    while len(restaurants) < 10 and i + 1 < len(nearby_resp['results']):
+    while len(restaurants) < NUM_RESTAURANTS and i + 1 < len(nearby_resp['results']):
         i += 1
         rest = nearby_resp['results'][i]
         required_fields = set(['name', 'rating', 'user_ratings_total', 'price_level', 'business_status', 'geometry'])
@@ -204,7 +208,7 @@ def start(session_id: str):
         new_rest['num_ratings'] = rest['user_ratings_total']
         new_rest['price_level'] = rest['price_level']
         new_rest['address'] = place_details_resp['result']['formatted_address']
-        new_rest['photos'] = [x['photo_reference'] for x in place_details_resp['result']['photos']]
+        new_rest['photos'] = [x['photo_reference'] for x in place_details_resp['result']['photos']][:min(NUM_PICS, len(place_details_resp['result']['photos']))]
         new_rest['distance'] = dist_resp['rows'][0]['elements'][0]['distance']['text']
         added_set.add(rest['name'])
         restaurants.append(new_rest)
@@ -304,7 +308,7 @@ def userFinish(session_id: str):
                 'notification': {
                     'title': 'done',
                     'body': {
-                        [restaurants[rank] for rank in ranking]
+                        'ranking': [restaurants[rank] for rank in ranking]
                     }
                 }
             }
