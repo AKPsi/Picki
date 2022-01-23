@@ -231,7 +231,7 @@ def start(session_id: str):
             'notification': {
                 'title': 'start',
                 'body': {
-                    'restaurants': restaurants
+                    'message': 'start'
                 }
             }
         }
@@ -245,7 +245,19 @@ def start(session_id: str):
     return {'restaurants': restaurants}, 200
 
 
-@app.route('/session/<session_id>/restaurant/<restaurant_id>', methods=['POST'])
+@app.route('/session/<session_id>/restaurants', methods=['GET'])
+def restaurants(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    doc_dict = session_ref.get().to_dict()
+    return {'restaurants': doc_dict['restaurants']}, 200
+
+
+@app.route('/session/<session_id>/restaurants/<restaurant_id>', methods=['POST'])
 def restaurantSwipe(session_id: str, restaurant_id: str):
     if 'like' not in request.form:
         return {
@@ -279,7 +291,6 @@ def userFinish(session_id: str):
     num_users = len(doc_dict['names'])
 
     if doc_dict['finished'] == num_users:
-        print("All users finished")
         fcm_headers = {
             'Content-Type': 'application/json',
             'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
@@ -296,13 +307,11 @@ def userFinish(session_id: str):
                 }
             }
 
-            resp = requests.post(
+            requests.post(
                 url="https://fcm.googleapis.com/fcm/send",
                 headers=fcm_headers,
                 data=json.dumps(fcm_body)
             )
-            print(resp.status_code)
-            print(resp.json())
 
     return {'message': f"{doc_dict['finished']}/{num_users} users finished."}, 200
 

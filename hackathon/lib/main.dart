@@ -756,6 +756,12 @@ class WaitingScreen extends StatefulWidget {
 
 class _WaitingScreenState extends State<WaitingScreen> {
   @override
+  void initState() {
+    _listenToFirebase();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
@@ -767,10 +773,13 @@ class _WaitingScreenState extends State<WaitingScreen> {
   }
 
   Future<void> _listenToFirebase() async {
+    print("starting");
     firebaseListener.finishStream.listen((event) async {
-      var response =
-          await Client().get("/session/$sessionId/restaurants/ranks");
+      print("hello there");
+      var response = await Client()
+          .get(Client().url + "/session/$sessionId/restaurants/ranks");
       var rankings = response["ranking"];
+      print("got rankings");
 
       List<Restaurant> restaurants = [];
       for (int i = 0; i < rankings.length; i++) {
@@ -796,35 +805,43 @@ class _ResultsPageState extends State<ResultsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Column(children: [
-      Container(child: Image.asset("assets/v5.png")),
-      Container(
-          child: ListView.builder(
-              itemCount: widget.restaurants!.length,
-              itemBuilder: (context, index) {
-                return _restaurantWidget(widget.restaurants![index]);
-              }))
-    ]));
+        body: Container(
+      padding: EdgeInsets.only(top: 60),
+      child: Column(children: [
+        Container(width: double.infinity),
+        Container(child: Image.asset("assets/v5.png")),
+        Container(
+            height: 500,
+            child: ListView.builder(
+                itemCount: widget.restaurants!.length,
+                itemBuilder: (context, index) {
+                  return _restaurantWidget(widget.restaurants![index]);
+                }))
+      ]),
+    ));
   }
 
   Widget _restaurantWidget(Restaurant restaurant) {
     return Container(
+        margin: EdgeInsets.only(bottom: 20),
         child: Column(
-      children: [
-        Container(
-            child: Text(restaurant.name,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-        Container(
-            child: Text(
-                "${restaurant.rating} (${restaurant.numRatings} reviews)",
-                style: TextStyle(fontSize: 14))),
-        Container(
-            child: Text(restaurant.distance, style: TextStyle(fontSize: 14))),
-        Container(
-            child: Text("${restaurant.priceLevel}",
-                style: TextStyle(fontSize: 14))),
-      ],
-    ));
+          children: [
+            Container(
+                child: Text(restaurant.name,
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+            Container(
+                child: Text(
+                    "${restaurant.rating} (${restaurant.numRatings} reviews)",
+                    style: TextStyle(fontSize: 14))),
+            Container(
+                child:
+                    Text(restaurant.distance, style: TextStyle(fontSize: 14))),
+            Container(
+                child: Text("${restaurant.priceLevel}",
+                    style: TextStyle(fontSize: 14))),
+          ],
+        ));
   }
 }
 
