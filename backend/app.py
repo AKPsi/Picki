@@ -226,6 +226,7 @@ def start(session_id: str):
     }
 
     for device_id in doc_dict['device_ids']:
+        print(device_id)
         fcm_body = {
             'to': device_id,
             'notification': {
@@ -236,11 +237,14 @@ def start(session_id: str):
             }
         }
 
-        requests.post(
+        resp = requests.post(
             url="https://fcm.googleapis.com/fcm/send",
             headers=fcm_headers,
             data=json.dumps(fcm_body)
         )
+        print(resp.status_code)
+        print(resp.json())
+    
 
     return {'restaurants': restaurants}, 200
 

@@ -155,21 +155,26 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
         Container(),
         Container(
             child: Transform.translate(
-                offset: Offset(23, 0), child: Image.asset("assets/logo_v5_2.png", scale: 1,))),
+                offset: Offset(23, 0),
+                child: Image.asset(
+                  "assets/logo_v5_2.png",
+                  scale: 1,
+                ))),
         Container(
           padding: EdgeInsets.only(bottom: 70),
-          child:
-            Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              GestureDetector(
-                  child: _lobbyButton("CREATE A LOBBY", RED, Colors.white),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => EnterHostNamePage()))),
-              GestureDetector(
-                  child: _lobbyButton("JOIN A LOBBY", Colors.white, Colors.black),
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => EnterGuestNamePage()))),
-            ]
-          ),
+          child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                GestureDetector(
+                    child: _lobbyButton("CREATE A LOBBY", RED, Colors.white),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => EnterHostNamePage()))),
+                GestureDetector(
+                    child: _lobbyButton(
+                        "JOIN A LOBBY", Colors.white, Colors.black),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => EnterGuestNamePage()))),
+              ]),
         )
       ],
     ));
@@ -200,7 +205,8 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
         child: Center(
             child: Text(name,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: outlineColor, fontWeight: FontWeight.bold))));
+                style: TextStyle(
+                    color: outlineColor, fontWeight: FontWeight.bold))));
   }
 }
 
@@ -228,7 +234,9 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
                   child: backButton,
                   onTap: () => Navigator.pop(context),
                 ),
-                Text("Create a Lobby", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                Text("Create a Lobby",
+                    style:
+                        TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
               ],
             )),
         Container(
@@ -263,7 +271,13 @@ class _EnterHostNamePageState extends State<EnterHostNamePage> {
                   ],
                 ),
                 child: Center(
-                  child: Text("Create", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
+                  child: Text(
+                    "Create",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18),
+                  ),
                 )),
             onTap: () async {
               var response = await Client().post("session", {
@@ -307,17 +321,18 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                           child: backButton,
                           onTap: () => Navigator.pop(context),
                         ),
-                        Text("Join a Lobby", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                        Text("Join a Lobby",
+                            style: TextStyle(
+                                fontSize: 30, fontWeight: FontWeight.bold)),
                       ],
-                    )
-                ),
+                    )),
                 Container(
                   margin: EdgeInsets.only(top: 10),
                   height: 50,
                   child: TextField(
                     controller: _controllerName,
                     decoration: InputDecoration(
-                    contentPadding: EdgeInsets.fromLTRB(15, 10, 10, 10),
+                      contentPadding: EdgeInsets.fromLTRB(15, 10, 10, 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -352,12 +367,19 @@ class _EnterGuestNamePageState extends State<EnterGuestNamePage> {
                               color: Colors.grey.withOpacity(0.75),
                               spreadRadius: 1,
                               blurRadius: 2,
-                              offset: Offset(0, 2), // changes position of shadow
+                              offset:
+                                  Offset(0, 2), // changes position of shadow
                             ),
                           ],
                         ),
                         child: Center(
-                          child: Text("Join", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
+                          child: Text(
+                            "Join",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18),
+                          ),
                         )),
                     onTap: () => _submitData())
               ],
@@ -430,17 +452,33 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
               ),
             ),
             GestureDetector(
-                child: Container(
-                    margin: EdgeInsets.only(top: 10),
-                    height: 50,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: RED, width: 2),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Center(
-                      child: Text("Use Current Location"),
-                    )),
+                child: Stack(alignment: Alignment.centerLeft, children: [
+                  Container(
+                      margin: EdgeInsets.only(top: 10),
+                      height: 50,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(width: .5),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.only(
+                          left: 35,
+                          top: 15,
+                          bottom: 15,
+                        ),
+                        child: Text("Use Current Location",
+                            style: TextStyle(color: RED)),
+                      )),
+                  Container(
+                      height: 30,
+                      padding: EdgeInsets.only(
+                        top: 4,
+                        left: 8,
+                        bottom: 0,
+                      ),
+                      child: Image.asset("assets/bytesize_location.png")),
+                ]),
                 onTap: () => _useCurrentLocation()),
             Expanded(
               child: ListView.builder(
@@ -495,6 +533,17 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
   }
 
   Widget _locationWidget(Map location, BuildContext context) {
+    String output = location["description"];
+    int offset = 0;
+    for (int i = 0; i < output.length; i++) {
+      if (i + offset != 0 && (i + offset) % 44 == 0) {
+        output = output.substring(0, i + offset) +
+            "\n" +
+            output.substring(i + offset);
+        offset += 1;
+      }
+    }
+
     return Container(
       padding: EdgeInsets.only(left: 20, right: 20),
       child: GestureDetector(
@@ -508,7 +557,7 @@ class _EnterAddressPageState extends State<EnterAddressPage> {
               height: 50,
               child: Row(
                 children: [
-                  Text("${location["description"]}", textAlign: TextAlign.left),
+                  Text("${output}", textAlign: TextAlign.left),
                 ],
               )),
           onTap: () async {
@@ -562,7 +611,8 @@ class _LobbyPageState extends State<LobbyPage> {
                           child: backButton,
                           onTap: () => Navigator.pop(context)),
                       Text(widget.isHost! ? "Host Lobby" : "Member Lobby",
-                          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                          style: TextStyle(
+                              fontSize: 30, fontWeight: FontWeight.bold)),
                     ],
                   )),
               Container(
@@ -582,12 +632,13 @@ class _LobbyPageState extends State<LobbyPage> {
                         children: [
                           Text("LOBBY CODE",
                               textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(fontSize: 16, color: BLACK, fontWeight: FontWeight.bold)),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  color: BLACK,
+                                  fontWeight: FontWeight.bold)),
                           Text(sessionId,
                               textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(fontSize: 20, color: DARKGREY))
+                              style: TextStyle(fontSize: 20, color: DARKGREY))
                         ],
                       ),
                     ],
@@ -597,18 +648,18 @@ class _LobbyPageState extends State<LobbyPage> {
                   margin: EdgeInsets.fromLTRB(0, 30, 0, 30),
                   height: 500,
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: GREY),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.75),
-                          spreadRadius: 1,
-                          blurRadius: 2,
-                          offset: Offset(0, 2), // changes position of shadow
-                        ),
-                      ],
-                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: GREY),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.75),
+                        spreadRadius: 1,
+                        blurRadius: 2,
+                        offset: Offset(0, 2), // changes position of shadow
+                      ),
+                    ],
+                  ),
                   child: ListView.builder(
                     key: UniqueKey(),
                     itemCount: names.length,
@@ -619,25 +670,32 @@ class _LobbyPageState extends State<LobbyPage> {
                   )),
               if (widget.isHost!)
                 GestureDetector(
-                     child: Container(
-                      margin: EdgeInsets.only(top: 10),
-                      height: 50,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: RED,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.75),
-                            spreadRadius: 1,
-                            blurRadius: 2,
-                            offset: Offset(0, 2), // changes position of shadow
+                    child: Container(
+                        margin: EdgeInsets.only(top: 10),
+                        height: 50,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: RED,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.75),
+                              spreadRadius: 1,
+                              blurRadius: 2,
+                              offset:
+                                  Offset(0, 2), // changes position of shadow
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            "Start",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18),
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text("Start", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),),
-                    )),
+                        )),
                     onTap: () => Client().post("session/$sessionId/start", {})),
             ],
           ),
@@ -646,14 +704,15 @@ class _LobbyPageState extends State<LobbyPage> {
 
   Widget _guestWidget(String name) {
     return Container(
-      width: double.infinity,
-      height: 20,
-      padding: EdgeInsets.only(left: 40),
-      child: Text(name,
-        textAlign: TextAlign.start,
-        style: TextStyle(color: BLACK, fontSize: 20, fontWeight: FontWeight.w500)
-    ));
+        width: double.infinity,
+        height: 20,
+        padding: EdgeInsets.only(left: 40),
+        child: Text(name,
+            textAlign: TextAlign.start,
+            style: TextStyle(
+                color: BLACK, fontSize: 20, fontWeight: FontWeight.w500)));
   }
+
   Future<void> _listenForFriends() async {
     firebaseListener.joinStream.listen((event) {
       setState(() {
