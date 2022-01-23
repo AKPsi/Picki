@@ -139,27 +139,42 @@ class _PickLobbyScreenState extends State<PickLobbyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        GestureDetector(
-            child: Text("Create Lobby"),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterHostNamePage()))),
+        Container(),
+        Container(child: Container()),
         Container(
-          width: double.infinity,
-          height: 50,
-        ),
-        GestureDetector(
-            child: Text("Join Lobby"),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => EnterGuestNamePage()))),
+          padding: EdgeInsets.only(bottom: 40),
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            GestureDetector(
+                child: _lobbyButton("CREATE A LOBBY", Colors.red, Colors.white),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => EnterHostNamePage()))),
+            GestureDetector(
+                child: _lobbyButton("JOIN A LOBBY", Colors.white, Colors.black),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => EnterGuestNamePage()))),
+          ]),
+        )
       ],
     ));
     // return BlocListener
 
     // <CounterCubit, int>(
     //   builder: (BuildContext context, int state) {
+  }
+
+  Widget _lobbyButton(String name, Color mainColor, Color outlineColor) {
+    return Container(
+        width: 160,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: mainColor,
+        ),
+        child: Center(child: Text(name, textAlign: TextAlign.center)));
   }
 }
 
@@ -513,6 +528,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
                         acceptTaps = false;
                         _sendDecisionToBackend(
                             widget.restaurants![restaurantIndex], true);
+                        acceptTaps = true;
                       }
                     })
               ],
@@ -549,7 +565,7 @@ class _RestaurantsListPageState extends State<RestaurantsListPage> {
   }
 
   Future<void> _sendDecisionToBackend(Restaurant restaurant, bool like) async {
-    await Client().post("session/$sessionId/restaurants/${restaurant.id}",
+    await Client().post("session/$sessionId/restaurant/${restaurant.id}",
         {"like": like.toString()});
     pictureId = 0;
     restaurantIndex++;
