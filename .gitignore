@@ -3,3 +3,4 @@ backend/.env
 backend/firebaseServiceAccount.json
 backend/venv/
 backend/app.db
+backend/utils.py
