@@ -13,12 +13,15 @@ load_dotenv()
 initialize_app()
 db = firestore.Client()
 
+
 def connectToDB(path: str):
     con = sqlite3.connect(path)
     cur = con.cursor()
     return con, cur
 
+
 def closeDB(con):
+    con.commit()
     con.close()
 
 
@@ -46,6 +49,7 @@ def createSession():
         u'latitude': 0,
         u'longitude': 0,
         u'likes': 0,
+        u'finished': 0,
         u'restaurants': [],
         u'names': [name]
     })
@@ -209,7 +213,6 @@ def start(session_id: str):
     for i in range(len(restaurants)):
         con, cur = connectToDB('app.db')
         cur.execute("INSERT INTO sessions(restaurant_id, likes, session) VALUES(?, ?, ?)", (i, 0, session_id))
-        con.commit()
         closeDB(con)
 
     fcm_headers = {
@@ -252,10 +255,54 @@ def restaurantSwipe(session_id: str, restaurant_id: str):
     if like:
         con, cur = connectToDB('app.db')
         cur.execute("UPDATE sessions SET likes = likes + 1 WHERE restaurant_id = ? AND session = ?", (restaurant_id, session_id,))
-        con.commit()
         closeDB(con)
 
     return {'Message': f"Vote for id {restaurant_id} in session {session_id} made."}, 200
+
+
+@app.route('/session/<session_id>/finish', methods=['POST'])
+def userFinish(session_id: str):
+    if not db.collection(u'sessions').document(session_id).get().exists:
+        return {
+            'message': "Error! Invalid session ID."
+        }, 400
+
+    session_ref = db.collection(u'sessions').document(session_id)
+    session_ref.update({'finished': firestore.Increment(1)})
+
+    doc_dict = session_ref.get().to_dict()
+    restaurants = doc_dict['restaurants']
+    num_users = len(doc_dict['names'])
+
+    con, cur = connectToDB('app.db')
+    cur.execute("SELECT restaurant_id FROM sessions WHERE session = ? ORDER BY likes DESC", (session_id,))
+    ranking = [rank[0] for rank in cur.fetchall()]
+    closeDB(con)
+
+    if doc_dict['finished'] == num_users:
+        fcm_headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'key=' + os.environ.get('FIREBASE_SERVER_KEY')
+        }
+
+        for device_id in doc_dict['device_ids']:
+            fcm_body = {
+                'to': device_id,
+                'notification': {
+                    'title': 'done',
+                    'body': {
+                        [restaurants[rank] for rank in ranking]
+                    }
+                }
+            }
+
+            requests.post(
+                url="https://fcm.googleapis.com/fcm/send",
+                headers=fcm_headers,
+                data=json.dumps(fcm_body)
+            )
+
+    return {'message': f"{doc_dict['finished']} out of {num_users} users finished."}, 200
 
 
 if __name__ == "__main__":
